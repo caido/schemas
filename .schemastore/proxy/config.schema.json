@@ -1,0 +1,57 @@
+{
+  "$id": "https://github.com/caido/schemas/.schemastore/proxy/config.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "oneOf": [
+    {
+      "allOf": [
+        {
+          "properties": {
+            "version": {
+              "const": "0.57.0"
+            }
+          },
+          "required": [
+            "version"
+          ]
+        },
+        {
+          "$ref": "https://raw.githubusercontent.com/caido/schemas/proxy-v0.57.0/.schemastore/proxy/config.schema.json"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "oneOf": [
+            {
+              "properties": {
+                "version": {
+                  "type": "string",
+                  "maxLength": 0
+                }
+              },
+              "required": [
+                "version"
+              ]
+            },
+            {
+              "not": {
+                "properties": {
+                  "version": {}
+                },
+                "required": [
+                  "version"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "$ref": "#/oneOf/0/allOf/1"
+        }
+      ]
+    }
+  ],
+  "title": "All Versions for Caido Proxy Configuration",
+  "type": "object"
+}
