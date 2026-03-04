@@ -224,13 +224,13 @@ type AutomateEntry {
     before: String
     first: Int
     last: Int
-    filter: HTTPQLInput
+    filter: HTTPQL
     order: AutomateEntryRequestOrderInput
   ): AutomateEntryRequestConnection!
   requestsByOffset(
     limit: Int
     offset: Int
-    filter: HTTPQLInput
+    filter: HTTPQL
     order: AutomateEntryRequestOrderInput
   ): AutomateEntryRequestConnection!
   session: AutomateSession!
@@ -809,7 +809,7 @@ union CreateFilterPresetError =
 
 input CreateFilterPresetInput {
   alias: Alias!
-  clause: QueryInput!
+  clause: HTTPQL!
   name: String!
 }
 
@@ -899,7 +899,7 @@ union CreateTamperRuleError =
 
 input CreateTamperRuleInput {
   collectionId: ID!
-  condition: QueryInput
+  condition: HTTPQL
   name: String!
   section: TamperSectionInput!
   sources: [Source!]!
@@ -1363,11 +1363,6 @@ type DeleteSitemapEntriesPayload {
   errors: [DeleteSitemapEntriesError!]!
 }
 
-type DeleteStreamWsMessageTask implements Task {
-  createdAt: DateTime!
-  id: ID!
-}
-
 type DeleteTamperRuleCollectionPayload {
   deletedId: ID
 }
@@ -1499,10 +1494,6 @@ type DeletedSitemapEntriesPayload {
   snapshot: Snapshot!
 }
 
-type DeletedStreamWsMessagesPayload {
-  deletedIds: [ID!]!
-}
-
 type DeletedTamperRuleCollectionPayload {
   deletedCollectionId: ID!
   snapshot: Snapshot!
@@ -1601,7 +1592,7 @@ input FilterClauseFindingInput {
 
 type FilterPreset {
   alias: Alias!
-  clause: Query!
+  clause: HTTPQL!
   id: ID!
   name: String!
 }
@@ -1787,13 +1778,7 @@ type GuestUser {
   settings: UserSettings
 }
 
-type HTTPQL {
-  code: String!
-}
-
-input HTTPQLInput {
-  code: String!
-}
+scalar HTTPQL
 
 input HideFindingsInput @oneOf {
   ids: [ID!]
@@ -1997,12 +1982,12 @@ type InterceptRequestMessage implements InterceptMessage {
 
 type InterceptRequestOptions {
   enabled: Boolean!
-  filter: Query
+  filter: HTTPQL
 }
 
 input InterceptRequestOptionsInput {
   enabled: Boolean!
-  filter: QueryInput
+  filter: HTTPQL
 }
 
 type InterceptResponseMessage implements InterceptMessage {
@@ -2013,12 +1998,12 @@ type InterceptResponseMessage implements InterceptMessage {
 
 type InterceptResponseOptions {
   enabled: Boolean!
-  filter: Query
+  filter: HTTPQL
 }
 
 input InterceptResponseOptionsInput {
   enabled: Boolean!
-  filter: QueryInput
+  filter: HTTPQL
 }
 
 type InterceptScopeOptions {
@@ -2177,7 +2162,7 @@ type MutationRoot {
   deleteFindings(input: DeleteFindingsInput): DeleteFindingsPayload!
   deleteHostedFile(id: ID!): DeleteHostedFilePayload!
   deleteInterceptEntries(
-    filter: HTTPQLInput
+    filter: HTTPQL
     scopeId: ID
   ): DeleteInterceptEntriesPayload!
   deleteInterceptEntry(id: ID!): DeleteInterceptEntryPayload!
@@ -2217,11 +2202,6 @@ type MutationRoot {
   pauseIntercept: PauseInterceptPayload!
   persistProject(id: ID!): PersistProjectPayload!
   rankDnsRewrite(id: ID!, input: RankInput!): RankDNSRewritePayload!
-  rankReplaySession(id: ID!, input: RankInput!): RankReplaySessionPayload!
-  rankReplaySessionCollection(
-    id: ID!
-    input: RankInput!
-  ): RankReplaySessionCollectionPayload!
   rankTamperRule(id: ID!, input: RankTamperRuleInput!): RankTamperRulePayload!
   rankUpstreamPlugin(id: ID!, input: RankInput!): RankUpstreamPluginPayload!
   rankUpstreamProxyHttp(
@@ -2291,9 +2271,6 @@ type MutationRoot {
   ): SetProjectConfigStreamPayload!
   startAuthenticationFlow: StartAuthenticationFlowPayload! @cloud
   startAutomateTask(automateSessionId: ID!): StartAutomateTaskPayload!
-  startDeleteStreamWsMessageTask(
-    input: StartDeleteStreamWsMessageTaskInput!
-  ): StartDeleteStreamWsMessageTaskPayload!
   startExportRequestsTask(
     input: StartExportRequestsTaskInput!
   ): StartExportRequestsTaskPayload! @cloud
@@ -2606,13 +2583,6 @@ type ProjectUserError implements UserError {
   reason: ProjectErrorReason!
 }
 
-union Query = HTTPQL | StreamQL
-
-input QueryInput @oneOf {
-  HTTPQL: HTTPQLInput
-  streamQL: StreamQLInput
-}
-
 type QueryRoot {
   assistantModels: [AssistantModel!]! @cloud
   assistantSession(id: ID!): AssistantSession
@@ -2670,21 +2640,21 @@ type QueryRoot {
     before: String
     first: Int
     last: Int
-    filter: HTTPQLInput
+    filter: HTTPQL
     order: InterceptEntryOrderInput
     scopeId: ID
   ): InterceptEntryConnection!
   interceptEntriesByOffset(
     limit: Int
     offset: Int
-    filter: HTTPQLInput
+    filter: HTTPQL
     order: InterceptEntryOrderInput
     scopeId: ID
   ): InterceptEntryConnection!
   interceptEntry(id: ID!): InterceptEntry
   interceptEntryOffset(
     id: ID!
-    filter: HTTPQLInput
+    filter: HTTPQL
     order: InterceptEntryOrderInput
     scopeId: ID
   ): InterceptEntryOffset
@@ -2716,7 +2686,7 @@ type QueryRoot {
   request(id: ID!): Request
   requestOffset(
     id: ID!
-    filter: HTTPQLInput
+    filter: HTTPQL
     order: RequestResponseOrderInput
     scopeId: ID
   ): RequestOffset
@@ -2725,14 +2695,14 @@ type QueryRoot {
     before: String
     first: Int
     last: Int
-    filter: HTTPQLInput
+    filter: HTTPQL
     order: RequestResponseOrderInput
     scopeId: ID
   ): RequestConnection!
   requestsByOffset(
     limit: Int
     offset: Int
-    filter: HTTPQLInput
+    filter: HTTPQL
     order: RequestResponseOrderInput
     scopeId: ID
   ): RequestConnection!
@@ -2820,26 +2790,6 @@ input RankInput {
   afterId: ID
   beforeId: ID
 }
-
-type RankReplaySessionCollectionPayload {
-  collection: ReplaySessionCollection
-  error: RankSessionCollectionPayloadError
-}
-
-type RankReplaySessionPayload {
-  error: RankSessionPayloadError
-  session: ReplaySession
-}
-
-union RankSessionCollectionPayloadError =
-    UnknownIdUserError
-  | RankUserError
-  | OtherUserError
-
-union RankSessionPayloadError =
-    UnknownIdUserError
-  | RankUserError
-  | OtherUserError
 
 union RankTamperRuleError = UnknownIdUserError | RankUserError | OtherUserError
 
@@ -3120,13 +3070,11 @@ type ReplaySession {
   ): ReplayEntryConnection!
   id: ID!
   name: String!
-  rank: Rank!
 }
 
 type ReplaySessionCollection {
   id: ID!
   name: String!
-  rank: Rank!
   sessions: [ReplaySession!]!
 }
 
@@ -3612,16 +3560,8 @@ type StartAutomateTaskPayload {
   automateTask: AutomateTask
 }
 
-input StartDeleteStreamWsMessageTaskInput {
-  ids: [ID!]!
-}
-
-type StartDeleteStreamWsMessageTaskPayload {
-  task: DeleteStreamWsMessageTask
-}
-
 input StartExportRequestsTaskInput {
-  filter: HTTPQLInput
+  filter: HTTPQL
   format: DataExportFormat!
   includeRaw: Boolean!
   scopeId: ID
@@ -3772,14 +3712,6 @@ enum StreamProtocol {
   WS
 }
 
-type StreamQL {
-  code: String!
-}
-
-input StreamQLInput {
-  code: String!
-}
-
 type StreamWsMessage {
   edits: [StreamWsMessageEditRef!]!
   head: StreamWsMessageEdit!
@@ -3854,7 +3786,7 @@ type SubscriptionRoot {
   createdAuthenticationToken(requestId: ID!): CreatedAuthenticationTokenPayload!
   createdAutomateEntry: CreatedAutomateEntryPayload!
   createdAutomateEntryRequest(
-    filter: HTTPQLInput
+    filter: HTTPQL
   ): CreatedAutomateEntryRequestPayload!
   createdAutomateSession: CreatedAutomateSessionPayload!
   createdAutomateTask: CreatedAutomateTaskPayload!
@@ -3866,7 +3798,7 @@ type SubscriptionRoot {
   createdFilterPreset: CreatedFilterPresetPayload!
   createdFinding: CreatedFindingPayload!
   createdInterceptEntry(
-    filter: HTTPQLInput
+    filter: HTTPQL
     scopeId: ID
   ): CreatedInterceptEntryPayload!
   createdInterceptMessage: CreatedInterceptMessagePayload!
@@ -3876,7 +3808,7 @@ type SubscriptionRoot {
   createdProject: CreatedProjectPayload!
   createdReplaySession: CreatedReplaySessionPayload!
   createdReplaySessionCollection: CreatedReplaySessionCollectionPayload!
-  createdRequest(filter: HTTPQLInput, scopeId: ID): CreatedRequestPayload!
+  createdRequest(filter: HTTPQL, scopeId: ID): CreatedRequestPayload!
   createdScope: CreatedScopePayload!
   createdSitemapEntry(scopeId: ID): CreatedSitemapEntryPayload!
   createdStream(protocol: StreamProtocol!, scopeId: ID): CreatedStreamPayload!
@@ -3908,7 +3840,6 @@ type SubscriptionRoot {
   deletedReplaySessionCollection: DeletedReplaySessionCollectionPayload!
   deletedScope: DeletedScopePayload!
   deletedSitemapEntry: DeletedSitemapEntriesPayload!
-  deletedStreamWsMessages: DeletedStreamWsMessagesPayload!
   deletedTamperRule: DeletedTamperRulePayload!
   deletedTamperRuleCollection: DeletedTamperRuleCollectionPayload!
   deletedUpstreamPlugin: DeletedUpstreamPluginPayload!
@@ -3944,7 +3875,7 @@ type SubscriptionRoot {
   updatedHostedFile: UpdatedHostedFilePayload!
   updatedInstanceSettings: UpdatedInstanceSettingsPayload!
   updatedInterceptEntry(
-    filter: HTTPQLInput
+    filter: HTTPQL
     scopeId: ID
   ): UpdatedInterceptEntryPayload!
   updatedInterceptOptions: UpdatedInterceptOptionsPayload!
@@ -3954,7 +3885,7 @@ type SubscriptionRoot {
   updatedProject: UpdatedProjectPayload!
   updatedReplaySession: UpdatedReplaySessionPayload!
   updatedReplaySessionCollection: UpdatedReplaySessionCollectionPayload!
-  updatedRequest(filter: HTTPQLInput, scopeId: ID): UpdatedRequestPayload!
+  updatedRequest(filter: HTTPQL, scopeId: ID): UpdatedRequestPayload!
   updatedRequestMetadata: UpdatedRequestMetadataPayload!
   updatedScope: UpdatedScopePayload!
   updatedSitemapEntry(scopeId: ID): UpdatedSitemapEntryPayload!
@@ -4252,7 +4183,7 @@ input TamperReplacerWorkflowInput {
 
 type TamperRule {
   collection: TamperRuleCollection!
-  condition: Query
+  condition: HTTPQL
   enable: TamperRuleEnable
   id: ID!
   name: String!
@@ -4674,7 +4605,7 @@ union UpdateFilterPresetError =
 
 input UpdateFilterPresetInput {
   alias: Alias!
-  clause: QueryInput!
+  clause: HTTPQL!
   name: String!
 }
 
@@ -4725,7 +4656,7 @@ union UpdateTamperRuleError =
   | OtherUserError
 
 input UpdateTamperRuleInput {
-  condition: QueryInput
+  condition: HTTPQL
   name: String!
   section: TamperSectionInput!
   sources: [Source!]!
