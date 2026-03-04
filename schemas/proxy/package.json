@@ -1,6 +1,6 @@
 {
   "name": "@caido/schema-proxy",
-  "version": "0.4.0",
+  "version": "0.55.3",
   "description": "Caido Proxy API schemas (GraphQL and OpenAPI)",
   "author": "Caido Labs Inc. <dev@caido.io>",
   "repository": "https://github.com/caido/schemas/",
