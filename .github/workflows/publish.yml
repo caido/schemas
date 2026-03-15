@@ -28,3 +28,22 @@ jobs:
       - name: Publish proxy
         run: |
           pnpm --filter schema-proxy publish --access public
+
+  publish-py:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v6
+
+      - name: Install Mise
+        uses: caido/action-mise-action@v3.2.0
+        with:
+          working_directory: .
+          version: ${{ vars.CI__MISE_VERSION }}
+
+      - name: Publish proxy
+        run: |
+          uv build schemas/proxy
+          uv publish --project schemas/proxy

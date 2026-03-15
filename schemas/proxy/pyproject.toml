@@ -1,0 +1,23 @@
+[project]
+name = "caido-schema-proxy"
+version = "0.55.3"
+description = "Caido Proxy API schemas (GraphQL and OpenAPI)"
+readme = "README.md"
+license = { text = "CC-BY-4.0" }
+requires-python = ">=3.12"
+authors = [{ name = "Caido Labs Inc.", email = "dev@caido.io" }]
+repository = "https://github.com/caido/schemas/"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["caido_schema_proxy"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"schema.graphql" = "caido_schema_proxy/schema.graphql"
+"openapi.yaml" = "caido_schema_proxy/openapi.yaml"
+
+[tool.hatch.build.targets.sdist]
+include = ["schema.graphql", "openapi.yaml"]
