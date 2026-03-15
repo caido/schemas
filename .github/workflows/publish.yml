@@ -46,4 +46,4 @@ jobs:
       - name: Publish proxy
         run: |
           uv build schemas/proxy
-          uv publish --project schemas/proxy
+          uv publish --project schemas/proxy --check-url https://pypi.org/simple
