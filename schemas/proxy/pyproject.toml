@@ -1,6 +1,6 @@
 [project]
 name = "caido-schema-proxy"
-version = "0.55.3"
+version = "0.56.0"
 description = "Caido Proxy API schemas (GraphQL and OpenAPI)"
 readme = "README.md"
 license = { text = "CC-BY-4.0" }

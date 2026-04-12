@@ -113,7 +113,7 @@ type AssistantMessageTask {
 }
 
 union AssistantMessageTaskError =
-    AssistantUserError
+  | AssistantUserError
   | AuthenticationUserError
   | CloudUserError
   | OtherUserError
@@ -224,13 +224,13 @@ type AutomateEntry {
     before: String
     first: Int
     last: Int
-    filter: HTTPQL
+    filter: HTTPQLInput
     order: AutomateEntryRequestOrderInput
   ): AutomateEntryRequestConnection!
   requestsByOffset(
     limit: Int
     offset: Int
-    filter: HTTPQL
+    filter: HTTPQLInput
     order: AutomateEntryRequestOrderInput
   ): AutomateEntryRequestConnection!
   session: AutomateSession!
@@ -354,7 +354,7 @@ input AutomatePayloadInput {
 }
 
 union AutomatePayloadOptions =
-    AutomateSimpleListPayload
+  | AutomateSimpleListPayload
   | AutomateHostedFilePayload
   | AutomateNullPayload
   | AutomateNumberPayload
@@ -400,7 +400,7 @@ input AutomatePreprocessorInput {
 }
 
 union AutomatePreprocessorOptions =
-    AutomatePrefixPreprocessor
+  | AutomatePrefixPreprocessor
   | AutomateSuffixPreprocessor
   | AutomateUrlEncodePreprocessor
   | AutomateWorkflowPreprocessor
@@ -732,10 +732,7 @@ type Count {
   value: Int!
 }
 
-union CreateAssistantSessionError =
-    PermissionDeniedUserError
-  | CloudUserError
-  | OtherUserError
+union CreateAssistantSessionError = PermissionDeniedUserError | CloudUserError | OtherUserError
 
 input CreateAssistantSessionInput {
   modelId: ID!
@@ -785,7 +782,7 @@ type CreateDNSUpstreamPayload {
 }
 
 union CreateEnvironmentError =
-    NameTakenUserError
+  | NameTakenUserError
   | PermissionDeniedUserError
   | CloudUserError
   | OtherUserError
@@ -801,7 +798,7 @@ type CreateEnvironmentPayload {
 }
 
 union CreateFilterPresetError =
-    NameTakenUserError
+  | NameTakenUserError
   | AliasTakenUserError
   | PermissionDeniedUserError
   | CloudUserError
@@ -809,7 +806,7 @@ union CreateFilterPresetError =
 
 input CreateFilterPresetInput {
   alias: Alias!
-  clause: HTTPQL!
+  clause: QueryInput!
   name: String!
 }
 
@@ -843,7 +840,7 @@ type CreateProjectPayload {
 }
 
 union CreateProjectPayloadError =
-    NameTakenUserError
+  | NameTakenUserError
   | PermissionDeniedUserError
   | CloudUserError
   | OtherUserError
@@ -892,14 +889,11 @@ type CreateTamperRuleCollectionPayload {
   collection: TamperRuleCollection
 }
 
-union CreateTamperRuleError =
-    InvalidRegexUserError
-  | InvalidHTTPQLUserError
-  | OtherUserError
+union CreateTamperRuleError = InvalidRegexUserError | InvalidHTTPQLUserError | OtherUserError
 
 input CreateTamperRuleInput {
   collectionId: ID!
-  condition: HTTPQL
+  condition: QueryInput
   name: String!
   section: TamperSectionInput!
   sources: [Source!]!
@@ -946,10 +940,7 @@ type CreateUpstreamProxySocksPayload {
   proxy: UpstreamProxySocks
 }
 
-union CreateWorkflowError =
-    WorkflowUserError
-  | PermissionDeniedUserError
-  | OtherUserError
+union CreateWorkflowError = WorkflowUserError | PermissionDeniedUserError | OtherUserError
 
 input CreateWorkflowInput {
   definition: JsonObject!
@@ -975,10 +966,7 @@ type CreatedAssistantSessionPayload {
   snapshot: Snapshot!
 }
 
-union CreatedAuthenticationTokenError =
-    AuthenticationUserError
-  | InternalUserError
-  | OtherUserError
+union CreatedAuthenticationTokenError = AuthenticationUserError | InternalUserError | OtherUserError
 
 type CreatedAuthenticationTokenPayload {
   error: CreatedAuthenticationTokenError
@@ -991,9 +979,7 @@ type CreatedAutomateEntryPayload {
 }
 
 type CreatedAutomateEntryRequestPayload {
-  automateEntryRequestEdge(
-    order: AutomateEntryRequestOrderInput
-  ): AutomateEntryRequestEdge!
+  automateEntryRequestEdge(order: AutomateEntryRequestOrderInput): AutomateEntryRequestEdge!
   snapshot: Snapshot!
 }
 
@@ -1339,10 +1325,7 @@ type DeleteProjectPayload {
   error: DeleteProjectPayloadError
 }
 
-union DeleteProjectPayloadError =
-    ProjectUserError
-  | UnknownIdUserError
-  | OtherUserError
+union DeleteProjectPayloadError = ProjectUserError | UnknownIdUserError | OtherUserError
 
 type DeleteReplaySessionCollectionPayload {
   deletedId: ID
@@ -1361,6 +1344,11 @@ union DeleteSitemapEntriesError = UnknownIdUserError | OtherUserError
 type DeleteSitemapEntriesPayload {
   deletedIds: [ID!]!
   errors: [DeleteSitemapEntriesError!]!
+}
+
+type DeleteStreamWsMessageTask implements Task {
+  createdAt: DateTime!
+  id: ID!
 }
 
 type DeleteTamperRuleCollectionPayload {
@@ -1383,10 +1371,7 @@ type DeleteUpstreamProxySocksPayload {
   deletedId: ID
 }
 
-union DeleteWorkflowError =
-    UnknownIdUserError
-  | ReadOnlyUserError
-  | OtherUserError
+union DeleteWorkflowError = UnknownIdUserError | ReadOnlyUserError | OtherUserError
 
 type DeleteWorkflowPayload {
   deletedId: ID
@@ -1494,6 +1479,10 @@ type DeletedSitemapEntriesPayload {
   snapshot: Snapshot!
 }
 
+type DeletedStreamWsMessagesPayload {
+  deletedIds: [ID!]!
+}
+
 type DeletedTamperRuleCollectionPayload {
   deletedCollectionId: ID!
   snapshot: Snapshot!
@@ -1592,7 +1581,7 @@ input FilterClauseFindingInput {
 
 type FilterPreset {
   alias: Alias!
-  clause: HTTPQL!
+  clause: Query!
   id: ID!
   name: String!
 }
@@ -1683,7 +1672,7 @@ type FinishedBackupTaskError {
 }
 
 union FinishedBackupTaskPayload =
-    FinishedBackupTaskSuccess
+  | FinishedBackupTaskSuccess
   | FinishedBackupTaskError
   | FinishedBackupTaskCancelled
 
@@ -1706,7 +1695,7 @@ type FinishedRestoreBackupTaskError {
 }
 
 union FinishedRestoreBackupTaskPayload =
-    FinishedRestoreBackupTaskSuccess
+  | FinishedRestoreBackupTaskSuccess
   | FinishedRestoreBackupTaskError
   | FinishedRestoreBackupTaskCancelled
 
@@ -1755,7 +1744,7 @@ type GlobalConfigProject {
 }
 
 union GlobalizeWorkflowError =
-    UnknownIdUserError
+  | UnknownIdUserError
   | ReadOnlyUserError
   | WorkflowUserError
   | OtherUserError
@@ -1778,7 +1767,13 @@ type GuestUser {
   settings: UserSettings
 }
 
-scalar HTTPQL
+type HTTPQL {
+  code: String!
+}
+
+input HTTPQLInput {
+  code: String!
+}
 
 input HideFindingsInput @oneOf {
   ids: [ID!]
@@ -1829,21 +1824,14 @@ input ImportTamperRuleInput {
   file: Upload!
 }
 
-union InstallBrowserError =
-    UnsupportedPlatformUserError
-  | CloudUserError
-  | OtherUserError
+union InstallBrowserError = UnsupportedPlatformUserError | CloudUserError | OtherUserError
 
 type InstallBrowserPayload {
   browser: Browser
   error: InstallBrowserError
 }
 
-union InstallPluginPackageError =
-    PluginUserError
-  | StoreUserError
-  | CloudUserError
-  | OtherUserError
+union InstallPluginPackageError = PluginUserError | StoreUserError | CloudUserError | OtherUserError
 
 input InstallPluginPackageInput {
   force: Boolean
@@ -1982,12 +1970,12 @@ type InterceptRequestMessage implements InterceptMessage {
 
 type InterceptRequestOptions {
   enabled: Boolean!
-  filter: HTTPQL
+  filter: Query
 }
 
 input InterceptRequestOptionsInput {
   enabled: Boolean!
-  filter: HTTPQL
+  filter: QueryInput
 }
 
 type InterceptResponseMessage implements InterceptMessage {
@@ -1998,12 +1986,12 @@ type InterceptResponseMessage implements InterceptMessage {
 
 type InterceptResponseOptions {
   enabled: Boolean!
-  filter: HTTPQL
+  filter: Query
 }
 
 input InterceptResponseOptionsInput {
   enabled: Boolean!
-  filter: HTTPQL
+  filter: QueryInput
 }
 
 type InterceptScopeOptions {
@@ -2062,7 +2050,7 @@ scalar JsonObject
 scalar JsonRaw
 
 union LocalizeWorkflowError =
-    UnknownIdUserError
+  | UnknownIdUserError
   | ReadOnlyUserError
   | WorkflowUserError
   | OtherUserError
@@ -2108,28 +2096,16 @@ type MutationRoot {
   cancelRestoreBackupTask(id: ID!): CancelRestoreBackupTaskPayload!
   cancelTask(id: ID!): CancelTaskPayload!
   clearSitemapEntries: ClearSitemapEntriesPayload!
-  createAssistantSession(
-    input: CreateAssistantSessionInput!
-  ): CreateAssistantSessionPayload! @cloud
-  createAutomateSession(
-    input: CreateAutomateSessionInput!
-  ): CreateAutomateSessionPayload!
+  createAssistantSession(input: CreateAssistantSessionInput!): CreateAssistantSessionPayload! @cloud
+  createAutomateSession(input: CreateAutomateSessionInput!): CreateAutomateSessionPayload!
   createBackup(projectId: ID!): CreateBackupPayload!
   createDnsRewrite(input: CreateDNSRewriteInput!): CreateDNSRewritePayload!
   createDnsUpstream(input: CreateDNSUpstreamInput!): CreateDNSUpstreamPayload!
-  createEnvironment(input: CreateEnvironmentInput!): CreateEnvironmentPayload!
-    @cloud
-  createFilterPreset(
-    input: CreateFilterPresetInput!
-  ): CreateFilterPresetPayload! @cloud
-  createFinding(
-    requestId: ID!
-    input: CreateFindingInput!
-  ): CreateFindingPayload!
+  createEnvironment(input: CreateEnvironmentInput!): CreateEnvironmentPayload! @cloud
+  createFilterPreset(input: CreateFilterPresetInput!): CreateFilterPresetPayload! @cloud
+  createFinding(requestId: ID!, input: CreateFindingInput!): CreateFindingPayload!
   createProject(input: CreateProjectInput!): CreateProjectPayload! @cloud
-  createReplaySession(
-    input: CreateReplaySessionInput!
-  ): CreateReplaySessionPayload!
+  createReplaySession(input: CreateReplaySessionInput!): CreateReplaySessionPayload!
   createReplaySessionCollection(
     input: CreateReplaySessionCollectionInput!
   ): CreateReplaySessionCollectionPayload!
@@ -2139,15 +2115,9 @@ type MutationRoot {
   createTamperRuleCollection(
     input: CreateTamperRuleCollectionInput!
   ): CreateTamperRuleCollectionPayload!
-  createUpstreamPlugin(
-    input: CreateUpstreamPluginInput!
-  ): CreateUpstreamPluginPayload!
-  createUpstreamProxyHttp(
-    input: CreateUpstreamProxyHttpInput!
-  ): CreateUpstreamProxyHttpPayload!
-  createUpstreamProxySocks(
-    input: CreateUpstreamProxySocksInput!
-  ): CreateUpstreamProxySocksPayload!
+  createUpstreamPlugin(input: CreateUpstreamPluginInput!): CreateUpstreamPluginPayload!
+  createUpstreamProxyHttp(input: CreateUpstreamProxyHttpInput!): CreateUpstreamProxyHttpPayload!
+  createUpstreamProxySocks(input: CreateUpstreamProxySocksInput!): CreateUpstreamProxySocksPayload!
   createWorkflow(input: CreateWorkflowInput!): CreateWorkflowPayload! @cloud
   deleteAssistantSession(id: ID!): DeleteAssistantSessionPayload!
   deleteAutomateEntries(ids: [ID!]!): DeleteAutomateEntriesPayload!
@@ -2161,10 +2131,7 @@ type MutationRoot {
   deleteFilterPreset(id: ID!): DeleteFilterPresetPayload!
   deleteFindings(input: DeleteFindingsInput): DeleteFindingsPayload!
   deleteHostedFile(id: ID!): DeleteHostedFilePayload!
-  deleteInterceptEntries(
-    filter: HTTPQL
-    scopeId: ID
-  ): DeleteInterceptEntriesPayload!
+  deleteInterceptEntries(filter: HTTPQLInput, scopeId: ID): DeleteInterceptEntriesPayload!
   deleteInterceptEntry(id: ID!): DeleteInterceptEntryPayload!
   deleteProject(id: ID!): DeleteProjectPayload!
   deleteReplaySessionCollection(id: ID!): DeleteReplaySessionCollectionPayload!
@@ -2190,9 +2157,7 @@ type MutationRoot {
   importCertificate(input: ImportCertificateInput!): ImportCertificatePayload!
   importData(input: ImportDataInput!): DataImportResult! @cloud
   installBrowser: InstallBrowserPayload! @cloud
-  installPluginPackage(
-    input: InstallPluginPackageInput!
-  ): InstallPluginPackagePayload! @cloud
+  installPluginPackage(input: InstallPluginPackageInput!): InstallPluginPackagePayload! @cloud
   localizeWorkflow(id: ID!): LocalizeWorkflowPayload!
   loginAsGuest: GuestAuthenticationPayload! @cloud
   logout: LogoutPayload! @cloud
@@ -2202,19 +2167,13 @@ type MutationRoot {
   pauseIntercept: PauseInterceptPayload!
   persistProject(id: ID!): PersistProjectPayload!
   rankDnsRewrite(id: ID!, input: RankInput!): RankDNSRewritePayload!
+  rankReplaySession(id: ID!, input: RankInput!): RankReplaySessionPayload!
+  rankReplaySessionCollection(id: ID!, input: RankInput!): RankReplaySessionCollectionPayload!
   rankTamperRule(id: ID!, input: RankTamperRuleInput!): RankTamperRulePayload!
   rankUpstreamPlugin(id: ID!, input: RankInput!): RankUpstreamPluginPayload!
-  rankUpstreamProxyHttp(
-    id: ID!
-    input: RankInput!
-  ): RankUpstreamProxyHttpPayload!
-  rankUpstreamProxySocks(
-    id: ID!
-    input: RankInput!
-  ): RankUpstreamProxySocksPayload!
-  refreshAuthenticationToken(
-    refreshToken: Token!
-  ): RefreshAuthenticationTokenPayload! @cloud
+  rankUpstreamProxyHttp(id: ID!, input: RankInput!): RankUpstreamProxyHttpPayload!
+  rankUpstreamProxySocks(id: ID!, input: RankInput!): RankUpstreamProxySocksPayload!
+  refreshAuthenticationToken(refreshToken: Token!): RefreshAuthenticationTokenPayload! @cloud
   regenerateCertificate: RegenerateCertificatePayload!
   renameAssistantSession(id: ID!, name: String!): RenameAssistantSessionPayload!
   renameAutomateEntry(id: ID!, name: String!): RenameAutomateEntryPayload!
@@ -2224,127 +2183,64 @@ type MutationRoot {
   renameHostedFile(id: ID!, name: String!): RenameHostedFilePayload!
   renameProject(id: ID!, name: String!): RenameProjectPayload!
   renameReplaySession(id: ID!, name: String!): RenameReplaySessionPayload!
-  renameReplaySessionCollection(
-    id: ID!
-    name: String!
-  ): RenameReplaySessionCollectionPayload!
+  renameReplaySessionCollection(id: ID!, name: String!): RenameReplaySessionCollectionPayload!
   renameScope(id: ID!, name: String!): RenameScopePayload!
   renameTamperRule(id: ID!, name: String!): RenameTamperRulePayload!
-  renameTamperRuleCollection(
-    id: ID!
-    name: String!
-  ): RenameTamperRuleCollectionPayload!
+  renameTamperRuleCollection(id: ID!, name: String!): RenameTamperRuleCollectionPayload!
   renameWorkflow(id: ID!, name: String!): RenameWorkflowPayload!
   renderRequest(id: ID!, input: RenderRequestInput!): RenderRequestPayload!
   restoreBackup(input: RestoreBackupInput!): RestoreBackupPayload! @cloud
   resumeAutomateTask(id: ID!): ResumeAutomateTaskPayload!
   resumeIntercept: ResumeInterceptPayload!
-  runActiveWorkflow(
-    id: ID!
-    input: RunActiveWorkflowInput!
-  ): RunActiveWorkflowPayload!
+  runActiveWorkflow(id: ID!, input: RunActiveWorkflowInput!): RunActiveWorkflowPayload!
   runConvertWorkflow(id: ID!, input: Blob!): RunConvertWorkflowPayload!
   selectEnvironment(id: ID): SelectEnvironmentPayload!
   selectProject(id: ID!): SelectProjectPayload! @cloud
-  sendAssistantMessage(
-    sessionId: ID!
-    message: String
-  ): SendAssistantMessagePayload! @cloud
-  setActiveReplaySessionEntry(
-    id: ID!
-    entryId: ID!
-  ): SetActiveReplaySessionEntryPayload!
+  sendAssistantMessage(sessionId: ID!, message: String): SendAssistantMessagePayload! @cloud
+  setActiveReplaySessionEntry(id: ID!, entryId: ID!): SetActiveReplaySessionEntryPayload!
     @deprecated(reason: "Remove usage, no replacement")
   setGlobalConfigPort(input: Int!): SetConfigPortPayload!
-  setGlobalConfigProject(
-    input: SetConfigProjectInput!
-  ): SetConfigProjectPayload!
-  setInstanceSettings(
-    input: SetInstanceSettingsInput!
-  ): SetInstanceSettingsPayload!
-  setInterceptOptions(
-    input: InterceptOptionsInput!
-  ): SetInterceptOptionsPayload!
+  setGlobalConfigProject(input: SetConfigProjectInput!): SetConfigProjectPayload!
+  setInstanceSettings(input: SetInstanceSettingsInput!): SetInstanceSettingsPayload!
+  setInterceptOptions(input: InterceptOptionsInput!): SetInterceptOptionsPayload!
   setPluginData(id: ID!, data: JSON!): SetPluginDataPayload!
-  setProjectConfigStream(
-    input: ProjectConfigStreamInput!
-  ): SetProjectConfigStreamPayload!
+  setProjectConfigStream(input: ProjectConfigStreamInput!): SetProjectConfigStreamPayload!
   startAuthenticationFlow: StartAuthenticationFlowPayload! @cloud
   startAutomateTask(automateSessionId: ID!): StartAutomateTaskPayload!
-  startExportRequestsTask(
-    input: StartExportRequestsTaskInput!
-  ): StartExportRequestsTaskPayload! @cloud
-  startReplayTask(
-    sessionId: ID!
-    input: StartReplayTaskInput!
-  ): StartReplayTaskPayload! @cloud
+  startDeleteStreamWsMessageTask(
+    input: StartDeleteStreamWsMessageTaskInput!
+  ): StartDeleteStreamWsMessageTaskPayload!
+  startExportRequestsTask(input: StartExportRequestsTaskInput!): StartExportRequestsTaskPayload!
+    @cloud
+  startReplayTask(sessionId: ID!, input: StartReplayTaskInput!): StartReplayTaskPayload! @cloud
   testAiProvider(input: TestAIProviderInput!): TestAIProviderPayload! @cloud
   testTamperRule(input: TestTamperRuleInput!): TestTamperRulePayload!
-  testUpstreamProxyHttp(
-    input: TestUpstreamProxyHttpInput!
-  ): TestUpstreamProxyHttpPayload!
-  testUpstreamProxySocks(
-    input: TestUpstreamProxySocksInput!
-  ): TestUpstreamProxySocksPayload!
-  testWorkflowActive(
-    input: TestWorkflowActiveInput!
-  ): TestWorkflowActivePayload!
-  testWorkflowConvert(
-    input: TestWorkflowConvertInput!
-  ): TestWorkflowConvertPayload!
-  testWorkflowPassive(
-    input: TestWorkflowPassiveInput!
-  ): TestWorkflowPassivePayload!
+  testUpstreamProxyHttp(input: TestUpstreamProxyHttpInput!): TestUpstreamProxyHttpPayload!
+  testUpstreamProxySocks(input: TestUpstreamProxySocksInput!): TestUpstreamProxySocksPayload!
+  testWorkflowActive(input: TestWorkflowActiveInput!): TestWorkflowActivePayload!
+  testWorkflowConvert(input: TestWorkflowConvertInput!): TestWorkflowConvertPayload!
+  testWorkflowPassive(input: TestWorkflowPassiveInput!): TestWorkflowPassivePayload!
   toggleDnsRewrite(id: ID!, enabled: Boolean!): ToggleDNSRewritePayload!
   togglePlugin(id: ID!, enabled: Boolean!): TogglePluginPayload!
   toggleTamperRule(id: ID!, enabled: Boolean!): ToggleTamperRulePayload!
   toggleUpstreamPlugin(id: ID!, enabled: Boolean!): ToggleUpstreamPluginPayload!
-  toggleUpstreamProxyHttp(
-    id: ID!
-    enabled: Boolean!
-  ): ToggleUpstreamProxyHttpPayload!
-  toggleUpstreamProxySocks(
-    id: ID!
-    enabled: Boolean!
-  ): ToggleUpstreamProxySocksPayload!
+  toggleUpstreamProxyHttp(id: ID!, enabled: Boolean!): ToggleUpstreamProxyHttpPayload!
+  toggleUpstreamProxySocks(id: ID!, enabled: Boolean!): ToggleUpstreamProxySocksPayload!
   toggleWorkflow(id: ID!, enabled: Boolean!): ToggleWorkflowPayload!
   track(input: TrackInput!): TrackPayload!
   uninstallPluginPackage(id: ID!): UninstallPluginPackagePayload!
-  updateAutomateSession(
-    id: ID!
-    input: UpdateAutomateSessionInput!
-  ): UpdateAutomateSessionPayload! @cloud
+  updateAutomateSession(id: ID!, input: UpdateAutomateSessionInput!): UpdateAutomateSessionPayload!
+    @cloud
   updateBrowser: UpdateBrowserPayload! @cloud
-  updateDnsRewrite(
-    id: ID!
-    input: UpdateDNSRewriteInput!
-  ): UpdateDNSRewritePayload!
-  updateDnsUpstream(
-    id: ID!
-    input: UpdateDNSUpstreamInput!
-  ): UpdateDNSUpstreamPayload!
-  updateEnvironment(
-    id: ID!
-    input: UpdateEnvironmentInput!
-  ): UpdateEnvironmentPayload! @cloud
-  updateFilterPreset(
-    id: ID!
-    input: UpdateFilterPresetInput!
-  ): UpdateFilterPresetPayload!
+  updateDnsRewrite(id: ID!, input: UpdateDNSRewriteInput!): UpdateDNSRewritePayload!
+  updateDnsUpstream(id: ID!, input: UpdateDNSUpstreamInput!): UpdateDNSUpstreamPayload!
+  updateEnvironment(id: ID!, input: UpdateEnvironmentInput!): UpdateEnvironmentPayload! @cloud
+  updateFilterPreset(id: ID!, input: UpdateFilterPresetInput!): UpdateFilterPresetPayload!
   updateFinding(id: ID!, input: UpdateFindingInput!): UpdateFindingPayload!
-  updateRequestMetadata(
-    id: ID!
-    input: UpdateRequestMetadataInput!
-  ): UpdateRequestMetadataPayload!
+  updateRequestMetadata(id: ID!, input: UpdateRequestMetadataInput!): UpdateRequestMetadataPayload!
   updateScope(id: ID!, input: UpdateScopeInput!): UpdateScopePayload!
-  updateTamperRule(
-    id: ID!
-    input: UpdateTamperRuleInput!
-  ): UpdateTamperRulePayload!
-  updateUpstreamPlugin(
-    id: ID!
-    input: UpdateUpstreamPluginInput!
-  ): UpdateUpstreamPluginPayload!
+  updateTamperRule(id: ID!, input: UpdateTamperRuleInput!): UpdateTamperRulePayload!
+  updateUpstreamPlugin(id: ID!, input: UpdateUpstreamPluginInput!): UpdateUpstreamPluginPayload!
   updateUpstreamProxyHttp(
     id: ID!
     input: UpdateUpstreamProxyHttpInput!
@@ -2353,9 +2249,7 @@ type MutationRoot {
     id: ID!
     input: UpdateUpstreamProxySocksInput!
   ): UpdateUpstreamProxySocksPayload!
-  updateViewerSettings(
-    input: UpdateViewerSettingsInput!
-  ): UpdateViewerSettingsPayload!
+  updateViewerSettings(input: UpdateViewerSettingsInput!): UpdateViewerSettingsPayload!
   updateWorkflow(id: ID!, input: UpdateWorkflowInput!): UpdateWorkflowPayload!
   uploadHostedFile(input: UploadHostedFileInput!): UploadHostedFilePayload!
 }
@@ -2432,10 +2326,7 @@ type PersistProjectPayload {
   project: Project
 }
 
-union PersistProjectPayloadError =
-    PermissionDeniedUserError
-  | UnknownIdUserError
-  | OtherUserError
+union PersistProjectPayloadError = PermissionDeniedUserError | UnknownIdUserError | OtherUserError
 
 interface Plugin {
   enabled: Boolean!
@@ -2583,6 +2474,13 @@ type ProjectUserError implements UserError {
   reason: ProjectErrorReason!
 }
 
+union Query = HTTPQL | StreamQL
+
+input QueryInput @oneOf {
+  HTTPQL: HTTPQLInput
+  streamQL: StreamQLInput
+}
+
 type QueryRoot {
   assistantModels: [AssistantModel!]! @cloud
   assistantSession(id: ID!): AssistantSession
@@ -2590,18 +2488,8 @@ type QueryRoot {
   authenticationState: AuthenticationState!
   automateEntry(id: ID!): AutomateEntry
   automateSession(id: ID!): AutomateSession
-  automateSessions(
-    after: String
-    before: String
-    first: Int
-    last: Int
-  ): AutomateSessionConnection!
-  automateTasks(
-    after: String
-    before: String
-    first: Int
-    last: Int
-  ): AutomateTaskConnection!
+  automateSessions(after: String, before: String, first: Int, last: Int): AutomateSessionConnection!
+  automateTasks(after: String, before: String, first: Int, last: Int): AutomateTaskConnection!
   backup(id: ID!): Backup
   backupTasks: [BackupTask!]!
   backups: [Backup!]!
@@ -2640,21 +2528,21 @@ type QueryRoot {
     before: String
     first: Int
     last: Int
-    filter: HTTPQL
+    filter: HTTPQLInput
     order: InterceptEntryOrderInput
     scopeId: ID
   ): InterceptEntryConnection!
   interceptEntriesByOffset(
     limit: Int
     offset: Int
-    filter: HTTPQL
+    filter: HTTPQLInput
     order: InterceptEntryOrderInput
     scopeId: ID
   ): InterceptEntryConnection!
   interceptEntry(id: ID!): InterceptEntry
   interceptEntryOffset(
     id: ID!
-    filter: HTTPQL
+    filter: HTTPQLInput
     order: InterceptEntryOrderInput
     scopeId: ID
   ): InterceptEntryOffset
@@ -2677,16 +2565,11 @@ type QueryRoot {
     first: Int
     last: Int
   ): ReplaySessionCollectionConnection!
-  replaySessions(
-    after: String
-    before: String
-    first: Int
-    last: Int
-  ): ReplaySessionConnection!
+  replaySessions(after: String, before: String, first: Int, last: Int): ReplaySessionConnection!
   request(id: ID!): Request
   requestOffset(
     id: ID!
-    filter: HTTPQL
+    filter: HTTPQLInput
     order: RequestResponseOrderInput
     scopeId: ID
   ): RequestOffset
@@ -2695,14 +2578,14 @@ type QueryRoot {
     before: String
     first: Int
     last: Int
-    filter: HTTPQL
+    filter: HTTPQLInput
     order: RequestResponseOrderInput
     scopeId: ID
   ): RequestConnection!
   requestsByOffset(
     limit: Int
     offset: Int
-    filter: HTTPQL
+    filter: HTTPQLInput
     order: RequestResponseOrderInput
     scopeId: ID
   ): RequestConnection!
@@ -2711,10 +2594,7 @@ type QueryRoot {
   runtime: Runtime!
   scope(id: ID!): Scope
   scopes: [Scope!]!
-  sitemapDescendantEntries(
-    parentId: ID!
-    depth: SitemapDescendantsDepth!
-  ): SitemapEntryConnection!
+  sitemapDescendantEntries(parentId: ID!, depth: SitemapDescendantsDepth!): SitemapEntryConnection!
   sitemapEntry(id: ID!): SitemapEntry
   sitemapRootEntries(scopeId: ID): SitemapEntryConnection!
   store: Store!
@@ -2791,6 +2671,20 @@ input RankInput {
   beforeId: ID
 }
 
+type RankReplaySessionCollectionPayload {
+  collection: ReplaySessionCollection
+  error: RankSessionCollectionPayloadError
+}
+
+type RankReplaySessionPayload {
+  error: RankSessionPayloadError
+  session: ReplaySession
+}
+
+union RankSessionCollectionPayloadError = UnknownIdUserError | RankUserError | OtherUserError
+
+union RankSessionPayloadError = UnknownIdUserError | RankUserError | OtherUserError
+
 union RankTamperRuleError = UnknownIdUserError | RankUserError | OtherUserError
 
 input RankTamperRuleInput {
@@ -2832,7 +2726,7 @@ enum RedirectStrategy {
 }
 
 union RefreshAuthenticationTokenError =
-    AuthenticationUserError
+  | AuthenticationUserError
   | CloudUserError
   | InternalUserError
   | OtherUserError
@@ -2887,10 +2781,7 @@ type RenameProjectPayload {
   project: Project
 }
 
-union RenameProjectPayloadError =
-    NameTakenUserError
-  | UnknownIdUserError
-  | OtherUserError
+union RenameProjectPayloadError = NameTakenUserError | UnknownIdUserError | OtherUserError
 
 type RenameReplaySessionCollectionPayload {
   collection: ReplaySessionCollection
@@ -2912,10 +2803,7 @@ type RenameTamperRulePayload {
   rule: TamperRule
 }
 
-union RenameWorkflowError =
-    UnknownIdUserError
-  | ReadOnlyUserError
-  | OtherUserError
+union RenameWorkflowError = UnknownIdUserError | ReadOnlyUserError | OtherUserError
 
 type RenameWorkflowPayload {
   error: RenameWorkflowError
@@ -3044,7 +2932,7 @@ input ReplayPreprocessorInput {
 }
 
 union ReplayPreprocessorOptions =
-    ReplayPrefixPreprocessor
+  | ReplayPrefixPreprocessor
   | ReplaySuffixPreprocessor
   | ReplayUrlEncodePreprocessor
   | ReplayWorkflowPreprocessor
@@ -3070,11 +2958,13 @@ type ReplaySession {
   ): ReplayEntryConnection!
   id: ID!
   name: String!
+  rank: Rank!
 }
 
 type ReplaySessionCollection {
   id: ID!
   name: String!
+  rank: Rank!
   sessions: [ReplaySession!]!
 }
 
@@ -3281,10 +3171,7 @@ input ResponseRawInput {
   raw: Blob!
 }
 
-union RestoreBackupError =
-    NameTakenUserError
-  | PermissionDeniedUserError
-  | OtherUserError
+union RestoreBackupError = NameTakenUserError | PermissionDeniedUserError | OtherUserError
 
 input RestoreBackupInput {
   name: String!
@@ -3302,10 +3189,7 @@ type RestoreBackupTask {
   project: Project!
 }
 
-union RestoreBackupTaskError =
-    BackupUserError
-  | InternalUserError
-  | OtherUserError
+union RestoreBackupTaskError = BackupUserError | InternalUserError | OtherUserError
 
 union ResumeAutomateTaskError = UnknownIdUserError | OtherUserError
 
@@ -3318,10 +3202,7 @@ type ResumeInterceptPayload {
   status: InterceptStatus!
 }
 
-union RunActiveWorkflowError =
-    UnknownIdUserError
-  | PermissionDeniedUserError
-  | OtherUserError
+union RunActiveWorkflowError = UnknownIdUserError | PermissionDeniedUserError | OtherUserError
 
 input RunActiveWorkflowInput {
   requestId: ID!
@@ -3332,10 +3213,7 @@ type RunActiveWorkflowPayload {
   task: WorkflowTask
 }
 
-union RunConvertWorkflowError =
-    WorkflowUserError
-  | PermissionDeniedUserError
-  | OtherUserError
+union RunConvertWorkflowError = WorkflowUserError | PermissionDeniedUserError | OtherUserError
 
 type RunConvertWorkflowPayload {
   error: RunConvertWorkflowError
@@ -3390,13 +3268,10 @@ type SelectProjectPayload {
   error: SelectProjectPayloadError
 }
 
-union SelectProjectPayloadError =
-    ProjectUserError
-  | UnknownIdUserError
-  | OtherUserError
+union SelectProjectPayloadError = ProjectUserError | UnknownIdUserError | OtherUserError
 
 union SendAssistantMessageError =
-    PermissionDeniedUserError
+  | PermissionDeniedUserError
   | TaskInProgressUserError
   | CloudUserError
   | OtherUserError
@@ -3546,7 +3421,7 @@ enum Source {
 }
 
 union StartAuthenticationFlowError =
-    AuthenticationUserError
+  | AuthenticationUserError
   | CloudUserError
   | InternalUserError
   | OtherUserError
@@ -3560,8 +3435,16 @@ type StartAutomateTaskPayload {
   automateTask: AutomateTask
 }
 
+input StartDeleteStreamWsMessageTaskInput {
+  ids: [ID!]!
+}
+
+type StartDeleteStreamWsMessageTaskPayload {
+  task: DeleteStreamWsMessageTask
+}
+
 input StartExportRequestsTaskInput {
-  filter: HTTPQL
+  filter: HTTPQLInput
   format: DataExportFormat!
   includeRaw: Boolean!
   scopeId: ID
@@ -3572,12 +3455,10 @@ type StartExportRequestsTaskPayload {
   task: DataExportTask
 }
 
-union StartExportRequestsTaskPayloadError =
-    PermissionDeniedUserError
-  | OtherUserError
+union StartExportRequestsTaskPayloadError = PermissionDeniedUserError | OtherUserError
 
 union StartReplayTaskError =
-    TaskInProgressUserError
+  | TaskInProgressUserError
   | PermissionDeniedUserError
   | CloudUserError
   | OtherUserError
@@ -3712,6 +3593,14 @@ enum StreamProtocol {
   WS
 }
 
+type StreamQL {
+  code: String!
+}
+
+input StreamQLInput {
+  code: String!
+}
+
 type StreamWsMessage {
   edits: [StreamWsMessageEditRef!]!
   head: StreamWsMessageEdit!
@@ -3785,9 +3674,7 @@ type SubscriptionRoot {
   createdAssistantSession: CreatedAssistantSessionPayload!
   createdAuthenticationToken(requestId: ID!): CreatedAuthenticationTokenPayload!
   createdAutomateEntry: CreatedAutomateEntryPayload!
-  createdAutomateEntryRequest(
-    filter: HTTPQL
-  ): CreatedAutomateEntryRequestPayload!
+  createdAutomateEntryRequest(filter: HTTPQLInput): CreatedAutomateEntryRequestPayload!
   createdAutomateSession: CreatedAutomateSessionPayload!
   createdAutomateTask: CreatedAutomateTaskPayload!
   createdBackup: CreatedBackupPayload!
@@ -3797,10 +3684,7 @@ type SubscriptionRoot {
   createdEnvironment: CreatedEnvironmentPayload!
   createdFilterPreset: CreatedFilterPresetPayload!
   createdFinding: CreatedFindingPayload!
-  createdInterceptEntry(
-    filter: HTTPQL
-    scopeId: ID
-  ): CreatedInterceptEntryPayload!
+  createdInterceptEntry(filter: HTTPQLInput, scopeId: ID): CreatedInterceptEntryPayload!
   createdInterceptMessage: CreatedInterceptMessagePayload!
   createdLogLines(duration: Duration!): CreatedLogLinesPayload!
   createdPluginEvent: CreatedPluginEventPayload!
@@ -3808,7 +3692,7 @@ type SubscriptionRoot {
   createdProject: CreatedProjectPayload!
   createdReplaySession: CreatedReplaySessionPayload!
   createdReplaySessionCollection: CreatedReplaySessionCollectionPayload!
-  createdRequest(filter: HTTPQL, scopeId: ID): CreatedRequestPayload!
+  createdRequest(filter: HTTPQLInput, scopeId: ID): CreatedRequestPayload!
   createdScope: CreatedScopePayload!
   createdSitemapEntry(scopeId: ID): CreatedSitemapEntryPayload!
   createdStream(protocol: StreamProtocol!, scopeId: ID): CreatedStreamPayload!
@@ -3840,6 +3724,7 @@ type SubscriptionRoot {
   deletedReplaySessionCollection: DeletedReplaySessionCollectionPayload!
   deletedScope: DeletedScopePayload!
   deletedSitemapEntry: DeletedSitemapEntriesPayload!
+  deletedStreamWsMessages: DeletedStreamWsMessagesPayload!
   deletedTamperRule: DeletedTamperRulePayload!
   deletedTamperRuleCollection: DeletedTamperRuleCollectionPayload!
   deletedUpstreamPlugin: DeletedUpstreamPluginPayload!
@@ -3874,10 +3759,7 @@ type SubscriptionRoot {
   updatedFindings: UpdatedFindingsPayload!
   updatedHostedFile: UpdatedHostedFilePayload!
   updatedInstanceSettings: UpdatedInstanceSettingsPayload!
-  updatedInterceptEntry(
-    filter: HTTPQL
-    scopeId: ID
-  ): UpdatedInterceptEntryPayload!
+  updatedInterceptEntry(filter: HTTPQLInput, scopeId: ID): UpdatedInterceptEntryPayload!
   updatedInterceptOptions: UpdatedInterceptOptionsPayload!
   updatedInterceptStatus: UpdatedInterceptStatusPayload!
   updatedPlugin: UpdatedPluginPayload!
@@ -3885,7 +3767,7 @@ type SubscriptionRoot {
   updatedProject: UpdatedProjectPayload!
   updatedReplaySession: UpdatedReplaySessionPayload!
   updatedReplaySessionCollection: UpdatedReplaySessionCollectionPayload!
-  updatedRequest(filter: HTTPQL, scopeId: ID): UpdatedRequestPayload!
+  updatedRequest(filter: HTTPQLInput, scopeId: ID): UpdatedRequestPayload!
   updatedRequestMetadata: UpdatedRequestMetadataPayload!
   updatedScope: UpdatedScopePayload!
   updatedSitemapEntry(scopeId: ID): UpdatedSitemapEntryPayload!
@@ -3923,10 +3805,7 @@ input TamperMatcherNameInput {
   name: String!
 }
 
-union TamperMatcherRaw =
-    TamperMatcherValue
-  | TamperMatcherRegex
-  | TamperMatcherFull
+union TamperMatcherRaw = TamperMatcherValue | TamperMatcherRegex | TamperMatcherFull
 
 input TamperMatcherRawInput @oneOf {
   full: TamperMatcherFullInput
@@ -3999,7 +3878,7 @@ input TamperOperationFirstLineRawInput {
 }
 
 union TamperOperationHeader =
-    TamperOperationHeaderRaw
+  | TamperOperationHeaderRaw
   | TamperOperationHeaderUpdate
   | TamperOperationHeaderAdd
   | TamperOperationHeaderRemove
@@ -4080,7 +3959,7 @@ input TamperOperationPathRawInput {
 }
 
 union TamperOperationQuery =
-    TamperOperationQueryRaw
+  | TamperOperationQueryRaw
   | TamperOperationQueryUpdate
   | TamperOperationQueryAdd
   | TamperOperationQueryRemove
@@ -4183,7 +4062,7 @@ input TamperReplacerWorkflowInput {
 
 type TamperRule {
   collection: TamperRuleCollection!
-  condition: HTTPQL
+  condition: Query
   enable: TamperRuleEnable
   id: ID!
   name: String!
@@ -4216,7 +4095,7 @@ type TamperRuleEnable {
 }
 
 union TamperSection =
-    TamperSectionRequestMethod
+  | TamperSectionRequestMethod
   | TamperSectionRequestPath
   | TamperSectionRequestQuery
   | TamperSectionRequestBody
@@ -4416,10 +4295,7 @@ type TestUpstreamProxySocksPayload {
   success: Boolean
 }
 
-union TestWorkflowActiveError =
-    WorkflowUserError
-  | PermissionDeniedUserError
-  | OtherUserError
+union TestWorkflowActiveError = WorkflowUserError | PermissionDeniedUserError | OtherUserError
 
 input TestWorkflowActiveInput {
   definition: JsonObject!
@@ -4432,10 +4308,7 @@ type TestWorkflowActivePayload {
   runState: JsonObject
 }
 
-union TestWorkflowConvertError =
-    WorkflowUserError
-  | PermissionDeniedUserError
-  | OtherUserError
+union TestWorkflowConvertError = WorkflowUserError | PermissionDeniedUserError | OtherUserError
 
 input TestWorkflowConvertInput {
   data: Blob!
@@ -4448,10 +4321,7 @@ type TestWorkflowConvertPayload {
   runState: JsonObject
 }
 
-union TestWorkflowPassiveError =
-    WorkflowUserError
-  | PermissionDeniedUserError
-  | OtherUserError
+union TestWorkflowPassiveError = WorkflowUserError | PermissionDeniedUserError | OtherUserError
 
 input TestWorkflowPassiveInput {
   definition: JsonObject!
@@ -4531,10 +4401,7 @@ type UnsupportedPlatformUserError implements UserError {
   code: String!
 }
 
-union UpdateAutomateSessionError =
-    PermissionDeniedUserError
-  | CloudUserError
-  | OtherUserError
+union UpdateAutomateSessionError = PermissionDeniedUserError | CloudUserError | OtherUserError
 
 input UpdateAutomateSessionInput {
   connection: ConnectionInfoInput!
@@ -4548,7 +4415,7 @@ type UpdateAutomateSessionPayload {
 }
 
 union UpdateBrowserError =
-    RenderFailedUserError
+  | RenderFailedUserError
   | UnsupportedPlatformUserError
   | CloudUserError
   | OtherUserError
@@ -4581,7 +4448,7 @@ type UpdateDNSUpstreamPayload {
 }
 
 union UpdateEnvironmentError =
-    UnknownIdUserError
+  | UnknownIdUserError
   | NameTakenUserError
   | NewerVersionUserError
   | PermissionDeniedUserError
@@ -4598,14 +4465,11 @@ type UpdateEnvironmentPayload {
   error: UpdateEnvironmentError
 }
 
-union UpdateFilterPresetError =
-    NameTakenUserError
-  | AliasTakenUserError
-  | OtherUserError
+union UpdateFilterPresetError = NameTakenUserError | AliasTakenUserError | OtherUserError
 
 input UpdateFilterPresetInput {
   alias: Alias!
-  clause: HTTPQL!
+  clause: QueryInput!
   name: String!
 }
 
@@ -4650,13 +4514,13 @@ type UpdateScopePayload {
 }
 
 union UpdateTamperRuleError =
-    UnknownIdUserError
+  | UnknownIdUserError
   | InvalidRegexUserError
   | InvalidHTTPQLUserError
   | OtherUserError
 
 input UpdateTamperRuleInput {
-  condition: HTTPQL
+  condition: QueryInput
   name: String!
   section: TamperSectionInput!
   sources: [Source!]!
@@ -4713,7 +4577,7 @@ type UpdateViewerSettingsPayload {
 }
 
 union UpdateWorkflowError =
-    UnknownIdUserError
+  | UnknownIdUserError
   | ReadOnlyUserError
   | WorkflowUserError
   | OtherUserError
