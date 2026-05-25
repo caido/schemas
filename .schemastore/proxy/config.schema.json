@@ -10,12 +10,10 @@
               "const": "0.57.0"
             }
           },
-          "required": [
-            "version"
-          ]
+          "required": ["version"]
         },
         {
-          "$ref": "https://raw.githubusercontent.com/caido/schemas/proxy-v0.57.0/.schemastore/proxy/config.schema.json"
+          "$ref": "https://raw.githubusercontent.com/caido/schemas/proxy-v0.57.0/schemas/proxy/config.schema.json"
         }
       ]
     },
@@ -30,18 +28,14 @@
                   "maxLength": 0
                 }
               },
-              "required": [
-                "version"
-              ]
+              "required": ["version"]
             },
             {
               "not": {
                 "properties": {
                   "version": {}
                 },
-                "required": [
-                  "version"
-                ]
+                "required": ["version"]
               }
             }
           ]
