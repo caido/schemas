@@ -890,6 +890,8 @@ type CreateReplaySessionCollectionPayload {
   collection: ReplaySessionCollection
 }
 
+union CreateReplaySessionError = PermissionDeniedUserError | CloudUserError | OtherUserError
+
 input CreateReplaySessionInput {
   collectionId: ID
   kind: ReplaySessionKind!
@@ -898,6 +900,7 @@ input CreateReplaySessionInput {
 }
 
 type CreateReplaySessionPayload {
+  error: CreateReplaySessionError
   session: ReplaySession
 }
 
