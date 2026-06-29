@@ -417,6 +417,7 @@ components:
       - repository
       - archive
       - signature
+      - quality
       - kind
       - downloads
       properties:
@@ -439,6 +440,10 @@ components:
                 type:
                 - string
                 - 'null'
+        changelog:
+          type:
+          - string
+          - 'null'
         description:
           type:
           - string
@@ -459,6 +464,12 @@ components:
           - 'null'
         public_key:
           type: string
+        quality:
+          $ref: '#/components/schemas/PluginPackageQuality'
+        readme:
+          type:
+          - string
+          - 'null'
         repository:
           type: string
         signature:
@@ -474,6 +485,12 @@ components:
       enum:
       - community
       - official
+    PluginPackageQuality:
+      type: string
+      enum:
+      - bronze
+      - silver
+      - gold
     RegisterClientInput:
       type: object
       required:
