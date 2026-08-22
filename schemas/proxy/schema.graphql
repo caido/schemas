@@ -882,6 +882,22 @@ union CreateProjectPayloadError =
   | CloudUserError
   | OtherUserError
 
+union CreateReplayPipelineHttpOneSessionError =
+  | PermissionDeniedUserError
+  | CloudUserError
+  | OtherUserError
+
+type CreateReplayPipelineHttpOneSessionPayload {
+  error: CreateReplayPipelineHttpOneSessionError
+  session: ReplaySessionHttpOnePipeline
+}
+
+input CreateReplayPipelineSessionInput {
+  collectionId: ID
+  requestSources: [RequestSourceInput!]!
+  settings: ReplaySessionHttpOnePipelineSettingsInput!
+}
+
 input CreateReplaySessionCollectionInput {
   name: String!
 }
@@ -905,11 +921,9 @@ type CreateReplaySessionPayload {
 }
 
 input CreateRequestInput {
-  alteration: Alteration!
   host: String!
   isTls: Boolean!
   method: String!
-  parentId: ID
   path: String!
   port: Int!
   query: String!
@@ -925,11 +939,8 @@ type CreateRequestPayload {
 }
 
 input CreateResponseInput {
-  alteration: Alteration!
-  parentId: ID
   raw: Blob!
   roundtripTime: Int!
-  source: Source!
   statusCode: Int!
 }
 
@@ -1667,6 +1678,11 @@ type ExportTamperPayload {
   export: DataExportOnDemand
 }
 
+enum FailureBehavior {
+  ABORT_ON_PARTIAL
+  FIRE_ON_PARTIAL
+}
+
 input FilterClauseFindingInput {
   reporter: String
 }
@@ -1938,6 +1954,22 @@ input InstallPluginPackageInput {
 type InstallPluginPackagePayload {
   error: InstallPluginPackageError
   package: PluginPackage
+}
+
+union InstallPluginPackagesError =
+  | PluginUserError
+  | StoreUserError
+  | CloudUserError
+  | OtherUserError
+
+input InstallPluginPackagesInput {
+  force: Boolean
+  sources: [PluginPackageSource!]!
+}
+
+type InstallPluginPackagesPayload {
+  errors: [InstallPluginPackagesError!]!
+  packages: [PluginPackage!]!
 }
 
 type InstanceSettings {
@@ -2214,7 +2246,10 @@ type MutationRoot {
   createFilterPreset(input: CreateFilterPresetInput!): CreateFilterPresetPayload! @cloud
   createFinding(requestId: ID!, input: CreateFindingInput!): CreateFindingPayload!
   createProject(input: CreateProjectInput!): CreateProjectPayload! @cloud
-  createReplaySession(input: CreateReplaySessionInput!): CreateReplaySessionPayload!
+  createReplayPipelineHttpOneSession(
+    input: CreateReplayPipelineSessionInput!
+  ): CreateReplayPipelineHttpOneSessionPayload! @cloud
+  createReplaySession(input: CreateReplaySessionInput!): CreateReplaySessionPayload! @cloud
   createReplaySessionCollection(
     input: CreateReplaySessionCollectionInput!
   ): CreateReplaySessionCollectionPayload!
@@ -2269,6 +2304,7 @@ type MutationRoot {
   importData(input: ImportDataInput!): DataImportResult! @cloud
   installBrowser: InstallBrowserPayload! @cloud
   installPluginPackage(input: InstallPluginPackageInput!): InstallPluginPackagePayload! @cloud
+  installPluginPackages(input: InstallPluginPackagesInput!): InstallPluginPackagesPayload! @cloud
   localizeWorkflow(id: ID!): LocalizeWorkflowPayload!
   loginAsGuest: GuestAuthenticationPayload! @cloud
   logout: LogoutPayload! @cloud
@@ -2313,12 +2349,17 @@ type MutationRoot {
     input: SendReplayTaskMessageInput!
   ): SendReplayTaskMessagePayload!
   sendReplayTaskMessageDraft(task: ID!): SendReplayTaskMessagePayload!
+  setActiveReplayPipelineEntryHttpEntry(
+    id: ID!
+    httpEntryId: ID!
+  ): SetActiveReplayPipelineEntryHttpEntryPayload!
   setActiveReplaySessionEntry(id: ID!, entryId: ID!): SetActiveReplaySessionEntryPayload!
     @deprecated(reason: "Remove usage, no replacement")
   setGlobalConfigPort(input: Int!): SetConfigPortPayload!
   setGlobalConfigProject(input: SetConfigProjectInput!): SetConfigProjectPayload!
   setInstanceSettings(input: SetInstanceSettingsInput!): SetInstanceSettingsPayload!
   setInterceptOptions(input: InterceptOptionsInput!): SetInterceptOptionsPayload!
+  setPassthroughOptions(input: PassthroughOptionsInput!): SetPassthroughOptionsPayload!
   setPluginData(id: ID!, data: JSON!): SetPluginDataPayload!
   setProjectConfigStream(input: ProjectConfigStreamInput!): SetProjectConfigStreamPayload!
   startAuthenticationFlow: StartAuthenticationFlowPayload! @cloud
@@ -2347,6 +2388,7 @@ type MutationRoot {
   toggleWorkflow(id: ID!, enabled: Boolean!): ToggleWorkflowPayload!
   track(input: TrackInput!): TrackPayload!
   uninstallPluginPackage(id: ID!): UninstallPluginPackagePayload!
+  uninstallPluginPackages(ids: [ID!]!): UninstallPluginPackagesPayload!
   updateAutomateSession(id: ID!, input: UpdateAutomateSessionInput!): UpdateAutomateSessionPayload!
     @cloud
   updateBrowser: UpdateBrowserPayload! @cloud
@@ -2358,6 +2400,10 @@ type MutationRoot {
   updateReplayEntryDraft(
     id: ID!
     input: UpdateReplayEntryDraftInput!
+  ): UpdateReplayEntryDraftPayload!
+  updateReplayEntryHttpOnePipelineDraftHttpEntries(
+    id: ID!
+    input: UpdateReplayEntryHttpOnePipelineDraftHttpEntriesInput!
   ): UpdateReplayEntryDraftPayload!
   updateReplaySessionSettings(
     id: ID!
@@ -2429,6 +2475,26 @@ type PageInfo {
   startCursor: String
 }
 
+type PassthroughOptions {
+  passthroughOptions: PassthroughOptionsObject
+}
+
+input PassthroughOptionsInput {
+  outofscope: Boolean!
+  targets: PassthroughTargets!
+}
+
+type PassthroughOptionsObject {
+  allowlist: [String!]
+  denylist: [String!]
+  outOfScope: Boolean!
+}
+
+input PassthroughTargets {
+  allowlist: [String!]
+  denylist: [String!]
+}
+
 union PauseAutomateTaskError = UnknownIdUserError | OtherUserError
 
 type PauseAutomateTaskPayload {
@@ -2457,6 +2523,43 @@ type PersistProjectPayload {
 }
 
 union PersistProjectPayloadError = PermissionDeniedUserError | UnknownIdUserError | OtherUserError
+
+union PipelineStrategy =
+  | PipelineStrategySequential
+  | PipelineStrategyLastByteSynchronization
+  | PipelineStrategySinglePacketAttack
+
+input PipelineStrategyInput @oneOf {
+  lastByteSynchronization: PipelineStrategyLastByteSynchronizationInput
+  sequential: PipelineStrategySequentialInput
+  singlePacketAttack: PipelineStrategySinglePacketAttackInput
+}
+
+type PipelineStrategyLastByteSynchronization {
+  failureBehavior: FailureBehavior!
+}
+
+input PipelineStrategyLastByteSynchronizationInput {
+  failureBehavior: FailureBehavior!
+}
+
+type PipelineStrategySequential {
+  abortOnFailure: Boolean!
+}
+
+input PipelineStrategySequentialInput {
+  abortOnFailure: Boolean!
+}
+
+type PipelineStrategySinglePacketAttack {
+  convertToHttp2: Boolean!
+  failureBehavior: FailureBehavior!
+}
+
+input PipelineStrategySinglePacketAttackInput {
+  convertToHttp2: Boolean!
+  failureBehavior: FailureBehavior!
+}
 
 interface Plugin {
   enabled: Boolean!
@@ -2515,8 +2618,15 @@ type PluginPackage {
   links: PluginLinks
   manifestId: ID!
   name: String
+  origin: PluginPackageOrigin!
   plugins: [Plugin!]!
   version: String!
+}
+
+enum PluginPackageOrigin {
+  FILE
+  STORE
+  URL
 }
 
 input PluginPackageSource @oneOf {
@@ -2685,6 +2795,7 @@ type QueryRoot {
   ): InterceptMessageConnection!
   interceptOptions: InterceptOptions!
   interceptStatus: InterceptStatus!
+  passthroughOptions: PassthroughOptions!
   pluginPackages: [PluginPackage!]!
   projects: [Project!]! @cloud
   replayEntry(id: ID!, sessionKind: ReplaySessionKind!): ReplayEntry
@@ -3024,6 +3135,36 @@ type ReplayEntryHttpDraft {
   settings: ReplayEntryHttpSettings!
 }
 
+type ReplayEntryHttpOnePipeline implements ReplayEntry {
+  activeHttpEntry: ReplayEntryHttp
+  createdAt: Timestamp!
+  draft: ReplayEntryHttpOnePipelineDraft
+  error: String
+  httpEntries: [ReplayEntryHttp!]!
+  id: ID!
+  rank: Rank!
+  session: ReplaySession!
+  settings: ReplayEntryHttpOnePipelineSettings!
+}
+
+type ReplayEntryHttpOnePipelineDraft {
+  settings: ReplayEntryHttpOnePipelineSettings!
+}
+
+enum ReplayEntryHttpOnePipelineDraftHttpEntryOperationKind {
+  ADD
+  RANK
+  REMOVE
+}
+
+type ReplayEntryHttpOnePipelineSettings {
+  strategy: PipelineStrategy!
+}
+
+input ReplayEntryHttpOnePipelineSettingsInput {
+  strategy: PipelineStrategyInput!
+}
+
 type ReplayEntryHttpSettings {
   placeholders: [ReplayPlaceholder!]!
 }
@@ -3205,6 +3346,30 @@ type ReplaySessionHttp implements ReplaySession {
   settings: ReplaySessionHttpSettings
 }
 
+type ReplaySessionHttpOnePipeline implements ReplaySession {
+  activeEntry: ReplayEntry
+  collection: ReplaySessionCollection!
+  entries(
+    after: String
+    before: String
+    first: Int
+    last: Int
+    order: ReplayEntryOrderInput
+  ): ReplayEntryConnection!
+  id: ID!
+  name: String!
+  rank: Rank!
+  settings: ReplaySessionHttpOnePipelineSettings
+}
+
+type ReplaySessionHttpOnePipelineSettings {
+  strategy: PipelineStrategy!
+}
+
+input ReplaySessionHttpOnePipelineSettingsInput {
+  strategy: PipelineStrategyInput!
+}
+
 type ReplaySessionHttpSettings {
   connectionClose: Boolean!
   updateContentLength: Boolean!
@@ -3217,11 +3382,13 @@ input ReplaySessionHttpSettingsInput {
 
 enum ReplaySessionKind {
   HTTP
+  HTTP_ONE_PIPELINE
   WS
 }
 
 input ReplaySessionSettingsInput @oneOf {
   http: ReplaySessionHttpSettingsInput
+  httpOnePipeline: ReplaySessionHttpOnePipelineSettingsInput
 }
 
 type ReplaySessionWs implements ReplaySession {
@@ -3518,6 +3685,10 @@ type SendReplayTaskMessagePayload {
 
 scalar Sensitive
 
+type SetActiveReplayPipelineEntryHttpEntryPayload {
+  entry: ReplayEntryHttpOnePipeline
+}
+
 type SetActiveReplaySessionEntryPayload {
   session: ReplaySession
 }
@@ -3548,6 +3719,10 @@ type SetInstanceSettingsPayload {
 
 type SetInterceptOptionsPayload {
   options: InterceptOptions!
+}
+
+type SetPassthroughOptionsPayload {
+  options: PassthroughOptions!
 }
 
 union SetPluginDataError = UnknownIdUserError | PluginUserError | OtherUserError
@@ -3750,12 +3925,15 @@ enum StoreErrorReason {
 
 type StorePluginPackage {
   author: StorePluginPackageAuthor
+  changelogUrl: Url
   description: String
   downloads: Int!
   license: String!
   manifestId: ID!
   name: String
   official: Boolean!
+  quality: StorePluginPackageQuality!
+  readmeUrl: Url
   repository: Url!
   version: Version!
 }
@@ -3764,6 +3942,12 @@ type StorePluginPackageAuthor {
   email: String
   name: String
   url: String
+}
+
+enum StorePluginPackageQuality {
+  BRONZE
+  GOLD
+  SILVER
 }
 
 type StoreUserError implements UserError {
@@ -4014,6 +4198,7 @@ type SubscriptionRoot {
   updatedInterceptEntry(filter: HTTPQLInput, scopeId: ID): UpdatedInterceptEntryPayload!
   updatedInterceptOptions: UpdatedInterceptOptionsPayload!
   updatedInterceptStatus: UpdatedInterceptStatusPayload!
+  updatedPassthroughOptions: UpdatedPassthroughOptionsPayload!
   updatedPlugin: UpdatedPluginPayload!
   updatedPluginPackage: UpdatedPluginPackagePayload!
   updatedProject: UpdatedProjectPayload!
@@ -4687,6 +4872,13 @@ type UninstallPluginPackagePayload {
   error: UninstallPluginPackageError
 }
 
+union UninstallPluginPackagesError = UnknownIdUserError | OtherUserError
+
+type UninstallPluginPackagesPayload {
+  deletedIds: [ID!]!
+  errors: [UninstallPluginPackagesError!]!
+}
+
 type UnknownIdUserError implements UserError {
   code: String!
   id: ID!
@@ -4789,6 +4981,7 @@ type UpdateFindingPayload {
 
 input UpdateReplayEntryDraftInput @oneOf {
   http: UpdateReplayEntryHttpDraftInput
+  httpOnePipeline: UpdateReplayEntryHttpOnePipelineDraftInput
   ws: UpdateReplayEntryWsDraftInput
 }
 
@@ -4801,6 +4994,21 @@ input UpdateReplayEntryHttpDraftInput {
   editorState: Blob!
   raw: Blob!
   settings: ReplayEntryHttpSettingsInput!
+}
+
+input UpdateReplayEntryHttpOnePipelineDraftHttpEntriesInput {
+  operations: [UpdateReplayEntryHttpOnePipelineDraftHttpEntryOperationInput!]!
+}
+
+input UpdateReplayEntryHttpOnePipelineDraftHttpEntryOperationInput {
+  httpEntryId: ID
+  operation: ReplayEntryHttpOnePipelineDraftHttpEntryOperationKind!
+  rank: RankInput
+  requestSource: RequestSourceInput
+}
+
+input UpdateReplayEntryHttpOnePipelineDraftInput {
+  settings: ReplayEntryHttpOnePipelineSettingsInput!
 }
 
 input UpdateReplayEntryWsDraftInput {
@@ -5010,6 +5218,10 @@ type UpdatedInterceptOptionsPayload {
 
 type UpdatedInterceptStatusPayload {
   status: InterceptStatus!
+}
+
+type UpdatedPassthroughOptionsPayload {
+  options: PassthroughOptions!
 }
 
 type UpdatedPluginPackagePayload {
