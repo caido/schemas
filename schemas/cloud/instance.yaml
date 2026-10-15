@@ -19,6 +19,10 @@ paths:
       responses:
         '200':
           description: Instance alive status recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstanceAlivePayload'
   /instance/assistant/complete:
     post:
       tags:
@@ -383,6 +387,16 @@ components:
                 type:
                 - string
                 - 'null'
+    InstanceAlivePayload:
+      type: object
+      required:
+      - sync
+      - analytics
+      properties:
+        analytics:
+          type: boolean
+        sync:
+          type: boolean
     InstanceOwnerPayload:
       type: object
       required:
