@@ -4,45 +4,22 @@ enum AIErrorReason {
   REQUEST_MALFORMED
 }
 
-type AIProviderAnthropic {
+type AIProvider {
+  alias: Alias!
+  api: AIProviderAPI!
   apiKey: Sensitive!
-}
-
-input AIProviderAnthropicInput {
-  apiKey: Sensitive!
-}
-
-type AIProviderGoogle {
-  apiKey: Sensitive!
-}
-
-input AIProviderGoogleInput {
-  apiKey: Sensitive!
-}
-
-type AIProviderOpenAI {
-  apiKey: Sensitive!
+  createdAt: DateTime!
+  id: ID!
+  updatedAt: DateTime!
   url: Url
 }
 
-input AIProviderOpenAIInput {
-  apiKey: Sensitive!
-  url: Url
-}
-
-type AIProviderOpenRouter {
-  apiKey: Sensitive!
-}
-
-input AIProviderOpenRouterInput {
-  apiKey: Sensitive!
-}
-
-type AIProviders {
-  anthropic: AIProviderAnthropic
-  google: AIProviderGoogle
-  openai: AIProviderOpenAI
-  openrouter: AIProviderOpenRouter
+enum AIProviderAPI {
+  ANTHROPIC
+  GEMINI
+  OPENAI_COMPLETION
+  OPENAI_RESPONSE
+  OPENROUTER
 }
 
 type AIUserError implements UserError {
@@ -768,6 +745,20 @@ type Count {
   value: Int!
 }
 
+union CreateAIProviderError = AliasTakenUserError | OtherUserError
+
+input CreateAIProviderInput {
+  alias: Alias!
+  api: AIProviderAPI!
+  apiKey: Sensitive!
+  url: Url
+}
+
+type CreateAIProviderPayload {
+  error: CreateAIProviderError
+  provider: AIProvider
+}
+
 union CreateAssistantSessionError = PermissionDeniedUserError | CloudUserError | OtherUserError
 
 input CreateAssistantSessionInput {
@@ -1032,6 +1023,10 @@ input CreateWorkflowInput {
 type CreateWorkflowPayload {
   error: CreateWorkflowError
   workflow: Workflow
+}
+
+type CreatedAIProviderPayload {
+  provider: AIProvider!
 }
 
 type CreatedAssistantMessagePayload {
@@ -1309,7 +1304,7 @@ type DataImportResult {
   summary: DataImportSummary
 }
 
-union DataImportSummary = TamperSummary | FindingsSummary
+union DataImportSummary = TamperSummary | FindingsSummary | PluginPackageDataSummary
 
 """
 A datetime with timezone offset.
@@ -1320,6 +1315,25 @@ format, but it is always normalized to the UTC (Z) offset, e.g.
 "2022-01-12T04:00:19.12345Z".
 """
 scalar DateTime
+
+union DefinePluginPackageDataError = UnknownIdUserError | OtherUserError
+
+input DefinePluginPackageDataInput {
+  flags: PluginPackageDataFlagsInput!
+  key: String!
+}
+
+type DefinePluginPackageDataPayload {
+  error: DefinePluginPackageDataError
+  success: Boolean!
+}
+
+union DeleteAIProviderError = UnknownIdUserError | OtherUserError
+
+type DeleteAIProviderPayload {
+  deletedId: ID
+  error: DeleteAIProviderError
+}
 
 type DeleteAssistantSessionPayload {
   deletedId: ID
@@ -1407,6 +1421,13 @@ type DeleteInterceptEntryPayload {
   userError: DeleteInterceptEntryError
 }
 
+union DeletePluginPackageDataError = UnknownIdUserError | OtherUserError
+
+type DeletePluginPackageDataPayload {
+  error: DeletePluginPackageDataError
+  success: Boolean!
+}
+
 type DeleteProjectPayload {
   deletedId: ID
   error: DeleteProjectPayloadError
@@ -1463,6 +1484,10 @@ union DeleteWorkflowError = UnknownIdUserError | ReadOnlyUserError | OtherUserEr
 type DeleteWorkflowPayload {
   deletedId: ID
   error: DeleteWorkflowError
+}
+
+type DeletedAIProviderPayload {
+  deletedProviderId: ID!
 }
 
 type DeletedAssistantSessionPayload {
@@ -1536,6 +1561,11 @@ type DeletedInterceptEntryPayload {
 type DeletedInterceptMessagePayload {
   deletedMessageId: ID!
   snapshot: Snapshot!
+}
+
+type DeletedPluginPackageDataPayload {
+  key: String!
+  packageId: ID!
 }
 
 type DeletedPluginPackagePayload {
@@ -1639,6 +1669,18 @@ type ExpiredViewerProfilePayload {
   expiredAt: Timestamp!
 }
 
+union ExportAutomateEntriesError = PermissionDeniedUserError | OtherUserError
+
+input ExportAutomateEntriesInput {
+  sessions: [ID!]!
+  settings: DataExportSettingsInput!
+}
+
+type ExportAutomateEntriesPayload {
+  error: ExportAutomateEntriesError
+  export: DataExportOnDemand
+}
+
 union ExportFindingsError = PermissionDeniedUserError | OtherUserError
 
 input ExportFindingsInput @oneOf {
@@ -1648,6 +1690,17 @@ input ExportFindingsInput @oneOf {
 
 type ExportFindingsPayload {
   error: ExportFindingsError
+  export: DataExportOnDemand
+}
+
+union ExportPluginPackageDataError = PermissionDeniedUserError | OtherUserError
+
+input ExportPluginPackageDataInput {
+  filter: PluginPackageDataFilter!
+}
+
+type ExportPluginPackageDataPayload {
+  error: ExportPluginPackageDataError
   export: DataExportOnDemand
 }
 
@@ -1926,10 +1979,15 @@ type ImportCertificatePayload {
 
 input ImportDataInput @oneOf {
   findings: ImportFindingsInput
+  pluginPackageData: ImportPluginPackageDataInput
   tamper: ImportTamperRuleInput
 }
 
 input ImportFindingsInput {
+  file: Upload!
+}
+
+input ImportPluginPackageDataInput {
   file: Upload!
 }
 
@@ -1973,7 +2031,6 @@ type InstallPluginPackagesPayload {
 }
 
 type InstanceSettings {
-  aiProviders: AIProviders!
   analytic: AnalyticStatus!
   network: NetworkState!
   onboarding: OnboardingState!
@@ -2237,6 +2294,7 @@ type MutationRoot {
   cancelTask(id: ID!): CancelTaskPayload!
   clearReplayEntryDraft(id: ID!, kind: ReplaySessionKind!): ClearReplayEntryDraftPayload!
   clearSitemapEntries: ClearSitemapEntriesPayload!
+  createAIProvider(input: CreateAIProviderInput!): CreateAIProviderPayload!
   createAssistantSession(input: CreateAssistantSessionInput!): CreateAssistantSessionPayload! @cloud
   createAutomateSession(input: CreateAutomateSessionInput!): CreateAutomateSessionPayload!
   createBackup(projectId: ID!): CreateBackupPayload!
@@ -2264,6 +2322,11 @@ type MutationRoot {
   createUpstreamProxyHttp(input: CreateUpstreamProxyHttpInput!): CreateUpstreamProxyHttpPayload!
   createUpstreamProxySocks(input: CreateUpstreamProxySocksInput!): CreateUpstreamProxySocksPayload!
   createWorkflow(input: CreateWorkflowInput!): CreateWorkflowPayload! @cloud
+  definePluginPackageData(
+    id: ID!
+    input: DefinePluginPackageDataInput!
+  ): DefinePluginPackageDataPayload!
+  deleteAIProvider(id: ID!): DeleteAIProviderPayload!
   deleteAssistantSession(id: ID!): DeleteAssistantSessionPayload!
   deleteAutomateEntries(ids: [ID!]!): DeleteAutomateEntriesPayload!
   deleteAutomateSession(id: ID!): DeleteAutomateSessionPayload!
@@ -2278,6 +2341,7 @@ type MutationRoot {
   deleteHostedFile(id: ID!): DeleteHostedFilePayload!
   deleteInterceptEntries(filter: HTTPQLInput, scopeId: ID): DeleteInterceptEntriesPayload!
   deleteInterceptEntry(id: ID!): DeleteInterceptEntryPayload!
+  deletePluginPackageData(id: ID!, key: String!): DeletePluginPackageDataPayload!
   deleteProject(id: ID!): DeleteProjectPayload!
   deleteReplaySessionCollection(id: ID!): DeleteReplaySessionCollectionPayload!
   deleteReplaySessions(ids: [ID!]!): DeleteReplaySessionsPayload!
@@ -2291,7 +2355,10 @@ type MutationRoot {
   deleteWorkflow(id: ID!): DeleteWorkflowPayload!
   dropInterceptMessage(id: ID!): DropInterceptMessagePayload!
   duplicateAutomateSession(id: ID!): DuplicateAutomateSessionPayload!
+  exportAutomateEntries(input: ExportAutomateEntriesInput!): ExportAutomateEntriesPayload! @cloud
   exportFindings(input: ExportFindingsInput!): ExportFindingsPayload!
+  exportPluginPackageData(input: ExportPluginPackageDataInput!): ExportPluginPackageDataPayload!
+    @cloud
   exportSitemapEntries(input: ExportSitemapEntriesInput!): ExportSitemapEntriesPayload! @cloud
   exportTamper(input: ExportTamperInput!): ExportTamperPayload! @cloud
   forwardInterceptMessage(
@@ -2361,6 +2428,7 @@ type MutationRoot {
   setInterceptOptions(input: InterceptOptionsInput!): SetInterceptOptionsPayload!
   setPassthroughOptions(input: PassthroughOptionsInput!): SetPassthroughOptionsPayload!
   setPluginData(id: ID!, data: JSON!): SetPluginDataPayload!
+  setPluginPackageData(id: ID!, key: String!, data: JSON!): SetPluginPackageDataPayload!
   setProjectConfigStream(input: ProjectConfigStreamInput!): SetProjectConfigStreamPayload!
   startAuthenticationFlow: StartAuthenticationFlowPayload! @cloud
   startAutomateTask(automateSessionId: ID!): StartAutomateTaskPayload!
@@ -2371,7 +2439,7 @@ type MutationRoot {
     @cloud
   startReplayTask(sessionId: ID!): StartReplayTaskPayload! @cloud
   stopReplayWsTasks(taskIds: [ID!]!): StopReplayWsTaskPayload!
-  testAiProvider(input: TestAIProviderInput!): TestAIProviderPayload! @cloud
+  testAIProvider(input: TestAIProviderInput!): TestAIProviderPayload! @cloud
   testExtractor(input: TestExtractorInput!): TestExtractorPayload!
   testTamperRule(input: TestTamperRuleInput!): TestTamperRulePayload!
   testUpstreamProxyHttp(input: TestUpstreamProxyHttpInput!): TestUpstreamProxyHttpPayload!
@@ -2389,6 +2457,7 @@ type MutationRoot {
   track(input: TrackInput!): TrackPayload!
   uninstallPluginPackage(id: ID!): UninstallPluginPackagePayload!
   uninstallPluginPackages(ids: [ID!]!): UninstallPluginPackagesPayload!
+  updateAIProvider(id: ID!, input: UpdateAIProviderInput!): UpdateAIProviderPayload!
   updateAutomateSession(id: ID!, input: UpdateAutomateSessionInput!): UpdateAutomateSessionPayload!
     @cloud
   updateBrowser: UpdateBrowserPayload! @cloud
@@ -2623,6 +2692,29 @@ type PluginPackage {
   version: String!
 }
 
+type PluginPackageData {
+  flags: PluginPackageDataFlags!
+  key: String!
+  package: PluginPackage!
+  value: JSON
+}
+
+input PluginPackageDataFilter @oneOf {
+  ids: [ID!]
+}
+
+type PluginPackageDataFlags {
+  exportable: Boolean!
+}
+
+input PluginPackageDataFlagsInput {
+  exportable: Boolean
+}
+
+type PluginPackageDataSummary {
+  packagesImported: Int!
+}
+
 enum PluginPackageOrigin {
   FILE
   STORE
@@ -2722,6 +2814,7 @@ input QueryInput @oneOf {
 }
 
 type QueryRoot {
+  aiProviders: [AIProvider!]!
   assistantModels: [AssistantModel!]! @cloud
   assistantSession(id: ID!): AssistantSession
   assistantSessions: [AssistantSession!]!
@@ -2796,6 +2889,9 @@ type QueryRoot {
   interceptOptions: InterceptOptions!
   interceptStatus: InterceptStatus!
   passthroughOptions: PassthroughOptions!
+  pluginPackage(id: ID!): PluginPackage
+  pluginPackageByManifest(manifestId: ID!): PluginPackage
+  pluginPackageData(id: ID!, key: String!): PluginPackageData
   pluginPackages: [PluginPackage!]!
   projects: [Project!]! @cloud
   replayEntry(id: ID!, sessionKind: ReplaySessionKind!): ReplayEntry
@@ -3535,6 +3631,7 @@ input RequestSourceInput @oneOf {
 type Response {
   alteration: Alteration!
   createdAt: Timestamp!
+  downloadUri: Uri!
   edited: Boolean!
   edits: [Response!]!
   id: ID!
@@ -3707,7 +3804,6 @@ type SetConfigProjectPayload {
 }
 
 input SetInstanceSettingsInput @oneOf {
-  aiProvider: SettingsAIProviderInput
   analytics: SettingsAnalyticInput
   network: SettingsNetworkInput
   onboarding: SettingsOnboardingInput
@@ -3732,15 +3828,15 @@ type SetPluginDataPayload {
   plugin: Plugin
 }
 
-type SetProjectConfigStreamPayload {
-  config: ProjectConfigStream!
+union SetPluginPackageDataError = UnknownIdUserError | OtherUserError
+
+type SetPluginPackageDataPayload {
+  error: SetPluginPackageDataError
+  success: Boolean!
 }
 
-input SettingsAIProviderInput @oneOf {
-  anthropic: AIProviderAnthropicInput
-  google: AIProviderGoogleInput
-  openai: AIProviderOpenAIInput
-  openrouter: AIProviderOpenRouterInput
+type SetProjectConfigStreamPayload {
+  config: ProjectConfigStream!
 }
 
 input SettingsAnalyticInput {
@@ -4104,6 +4200,7 @@ input StreamWsMessageOrderInput {
 }
 
 type SubscriptionRoot {
+  createdAIProvider: CreatedAIProviderPayload!
   createdAssistantMessage: CreatedAssistantMessagePayload!
   createdAssistantMessageTask: CreatedAssistantMessageTaskPayload!
   createdAssistantSession: CreatedAssistantSessionPayload!
@@ -4138,6 +4235,7 @@ type SubscriptionRoot {
   createdUpstreamProxyHttp: CreatedUpstreamProxyHttpPayload!
   createdUpstreamProxySocks: CreatedUpstreamProxySocksPayload!
   createdWorkflow: CreatedWorkflowPayload!
+  deletedAIProvider: DeletedAIProviderPayload!
   deletedAssistantSession: DeletedAssistantSessionPayload!
   deletedAutomateEntry: DeletedAutomateEntryPayload!
   deletedAutomateSession: DeletedAutomateSessionPayload!
@@ -4154,6 +4252,7 @@ type SubscriptionRoot {
   deletedInterceptEntry: DeletedInterceptEntryPayload!
   deletedInterceptMessage: DeletedInterceptMessagePayload!
   deletedPluginPackage: DeletedPluginPackagePayload!
+  deletedPluginPackageData(packageId: ID): DeletedPluginPackageDataPayload!
   deletedProject: DeletedProjectPayload!
   deletedReplaySession: DeletedReplaySessionPayload!
   deletedReplaySessionCollection: DeletedReplaySessionCollectionPayload!
@@ -4177,6 +4276,7 @@ type SubscriptionRoot {
   startedDeleteInterceptEntriesTask: StartedDeleteInterceptEntriesTaskPayload!
   startedRestoreBackupTask: StartedRestoreBackupTaskPayload!
   startedTask: StartedTaskPayload!
+  updatedAIProvider: UpdatedAIProviderPayload!
   updatedAssistantMessageTask: UpdatedAssistantMessageTaskPayload!
   updatedAssistantSession: UpdatedAssistantSessionPayload!
   updatedAutomateEntry: UpdatedAutomateEntryPayload!
@@ -4201,6 +4301,7 @@ type SubscriptionRoot {
   updatedPassthroughOptions: UpdatedPassthroughOptionsPayload!
   updatedPlugin: UpdatedPluginPayload!
   updatedPluginPackage: UpdatedPluginPackagePayload!
+  updatedPluginPackageData(packageId: ID): UpdatedPluginPackageDataPayload!
   updatedProject: UpdatedProjectPayload!
   updatedReplayEntryDraft: UpdatedReplayEntryDraftPayload!
   updatedReplayEntryWs: UpdatedReplayEntryWsPayload!
@@ -4723,11 +4824,10 @@ enum TaskStatus {
 
 union TestAIProviderError = AIUserError | OtherUserError
 
-input TestAIProviderInput @oneOf {
-  anthropic: AIProviderAnthropicInput
-  google: AIProviderGoogleInput
-  openai: AIProviderOpenAIInput
-  openrouter: AIProviderOpenRouterInput
+input TestAIProviderInput {
+  api: AIProviderAPI!
+  apiKey: Sensitive!
+  url: Url
 }
 
 type TestAIProviderPayload {
@@ -4886,6 +4986,20 @@ type UnknownIdUserError implements UserError {
 
 type UnsupportedPlatformUserError implements UserError {
   code: String!
+}
+
+union UpdateAIProviderError = UnknownIdUserError | AliasTakenUserError | OtherUserError
+
+input UpdateAIProviderInput {
+  alias: Alias!
+  api: AIProviderAPI!
+  apiKey: Sensitive!
+  url: Url
+}
+
+type UpdateAIProviderPayload {
+  error: UpdateAIProviderError
+  provider: AIProvider
 }
 
 union UpdateAutomateSessionError = PermissionDeniedUserError | CloudUserError | OtherUserError
@@ -5123,6 +5237,10 @@ type UpdateWorkflowPayload {
   workflow: Workflow
 }
 
+type UpdatedAIProviderPayload {
+  provider: AIProvider!
+}
+
 type UpdatedAssistantMessageTaskPayload {
   task: AssistantMessageTask!
 }
@@ -5222,6 +5340,10 @@ type UpdatedInterceptStatusPayload {
 
 type UpdatedPassthroughOptionsPayload {
   options: PassthroughOptions!
+}
+
+type UpdatedPluginPackageDataPayload {
+  packageData: PluginPackageData!
 }
 
 type UpdatedPluginPackagePayload {
