@@ -16,20 +16,125 @@ paths:
         required: true
       responses:
         '200':
-          description: Streaming completion response
+          description: Completion response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CompletionPayload'
-            text/event-stream:
+                $ref: '#/components/schemas/GenerateResult'
+        '400':
+          description: Invalid AI request
+          content:
+            application/json:
               schema:
-                $ref: '#/components/schemas/AIStreamedAssistantContent'
+                $ref: '#/components/schemas/AIErrorResponse'
+        '403':
+          description: Provider permission denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIErrorResponse'
+        '404':
+          description: Provider resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIErrorResponse'
+        '413':
+          description: AI request payload too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIErrorResponse'
+        '429':
+          description: Provider rate limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIErrorResponse'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/AIErrorResponse'
+        '502':
+          description: Provider, transport, or authentication service error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIErrorResponse'
+        '504':
+          description: Provider request timed out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIErrorResponse'
+  /ai/stream:
+    post:
+      tags:
+      - ai
+      operationId: completion_stream
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompletionInput'
+        required: true
+      responses:
+        '200':
+          description: Streaming completion response
+          content:
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/StreamEvent'
+        '400':
+          description: Invalid AI request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIErrorResponse'
+        '403':
+          description: Provider permission denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIErrorResponse'
+        '404':
+          description: Provider resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIErrorResponse'
+        '413':
+          description: AI request payload too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIErrorResponse'
+        '429':
+          description: Provider rate limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIErrorResponse'
+        '502':
+          description: Provider, transport, or authentication service error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIErrorResponse'
+        '504':
+          description: Provider request timed out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIErrorResponse'
   /backup/{backup_id}:
     get:
       tags:
@@ -231,84 +336,16 @@ paths:
           description: GraphQL WebSocket
 components:
   schemas:
-    AIAssistantContent:
-      oneOf:
-      - allOf:
-        - $ref: '#/components/schemas/AIText'
-        - type: object
-          required:
-          - kind
-          properties:
-            kind:
-              type: string
-              enum:
-              - text
-      - allOf:
-        - $ref: '#/components/schemas/AIToolCall'
-        - type: object
-          required:
-          - kind
-          properties:
-            kind:
-              type: string
-              enum:
-              - toolcall
-      - allOf:
-        - $ref: '#/components/schemas/AIReasoning'
-        - type: object
-          required:
-          - kind
-          properties:
-            kind:
-              type: string
-              enum:
-              - reasoning
-    AIMessage:
-      oneOf:
+    AIErrorResponse:
+      allOf:
+      - $ref: '#/components/schemas/ErrorResponse'
       - type: object
-        required:
-        - content
-        - role
         properties:
-          content:
-            type: array
-            items:
-              $ref: '#/components/schemas/AIUserContent'
-          role:
-            type: string
-            enum:
-            - user
-      - type: object
-        required:
-        - content
-        - role
-        properties:
-          content:
-            type: array
-            items:
-              $ref: '#/components/schemas/AIAssistantContent'
-          id:
-            type:
-            - string
-            - 'null'
-          role:
-            type: string
-            enum:
-            - assistant
-    AIReasoning:
-      type: object
-      required:
-      - content
-      properties:
-        content:
-          type: array
-          items:
-            $ref: '#/components/schemas/AIReasoningContent'
-        id:
-          type:
-          - string
-          - 'null'
-    AIReasoningContent:
+          provider:
+            oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/Error'
+    AssistantPart:
       oneOf:
       - type: object
         required:
@@ -319,106 +356,12 @@ components:
             type: string
             enum:
             - text
-          signature:
-            type:
-            - string
-            - 'null'
+          provider_metadata:
+            $ref: '#/components/schemas/ProviderMetadata'
           text:
             type: string
-      - type: object
-        required:
-        - text
-        - kind
-        properties:
-          kind:
-            type: string
-            enum:
-            - summary
-          text:
-            type: string
-      - type: object
-        required:
-        - data
-        - kind
-        properties:
-          data:
-            type: string
-          kind:
-            type: string
-            enum:
-            - encrypted
-      - type: object
-        required:
-        - data
-        - kind
-        properties:
-          data:
-            type: string
-          kind:
-            type: string
-            enum:
-            - redacted
-    AIReasoningDelta:
-      type: object
-      required:
-      - text
-      properties:
-        id:
-          type:
-          - string
-          - 'null'
-        text:
-          type: string
-    AIReasoningEffort:
-      type: string
-      enum:
-      - low
-      - medium
-      - high
-    AIStreamError:
-      type: object
-      required:
-      - error
-      - message
-      properties:
-        error:
-          type: string
-        message:
-          type: string
-    AIStreamedAssistantContent:
-      oneOf:
       - allOf:
-        - $ref: '#/components/schemas/AIText'
-        - type: object
-          required:
-          - kind
-          properties:
-            kind:
-              type: string
-              enum:
-              - text
-      - allOf:
-        - $ref: '#/components/schemas/AIToolCall'
-        - type: object
-          required:
-          - kind
-          properties:
-            kind:
-              type: string
-              enum:
-              - tool-call
-      - allOf:
-        - $ref: '#/components/schemas/AIToolCallDelta'
-        - type: object
-          required:
-          - kind
-          properties:
-            kind:
-              type: string
-              enum:
-              - tool-call-delta
-      - allOf:
-        - $ref: '#/components/schemas/AIReasoning'
+        - $ref: '#/components/schemas/ReasoningPart'
         - type: object
           required:
           - kind
@@ -428,7 +371,7 @@ components:
               enum:
               - reasoning
       - allOf:
-        - $ref: '#/components/schemas/AIReasoningDelta'
+        - $ref: '#/components/schemas/ToolCall'
         - type: object
           required:
           - kind
@@ -436,19 +379,10 @@ components:
             kind:
               type: string
               enum:
-              - reasoning-delta
-      - type: object
-        required:
-        - value
-        - kind
-        properties:
-          kind:
-            type: string
-            enum:
-            - unknown
-          value: {}
+              - tool-call
       - allOf:
-        - $ref: '#/components/schemas/AIStreamError'
+        - $ref: '#/components/schemas/CompactionPart'
+          description: A provider-produced compaction item that replaces earlier history.
         - type: object
           required:
           - kind
@@ -456,317 +390,179 @@ components:
             kind:
               type: string
               enum:
-              - error
+              - compaction
+        description: A provider-produced compaction item that replaces earlier history.
       - type: object
+        description: A provider-executed tool item preserved for replay.
         required:
+        - provider_tool
         - kind
         properties:
           kind:
             type: string
             enum:
-            - final
-          usage:
-            oneOf:
-            - type: 'null'
-            - $ref: '#/components/schemas/AIUsage'
-    AIStructuredOutput:
+            - provider-tool
+          provider_tool:
+            $ref: '#/components/schemas/ProviderToolPart'
+      description: Content inside a [`Message::Assistant`].
+    Citation:
       type: object
+      description: |-
+        A source citation / grounding reference attached to streamed text.
+
+        Common citation fields plus the exact provider JSON.
       required:
-      - name
-      - schema
+      - raw
       properties:
-        name:
-          type: string
-        schema: {}
-        strict:
+        cited_text:
+          type:
+          - string
+          - 'null'
+          description: The quoted source passage, when the provider includes one.
+        raw:
+          description: The provider's exact citation/annotation JSON.
+        title:
+          type:
+          - string
+          - 'null'
+        url:
+          type:
+          - string
+          - 'null'
+    Compaction:
+      type: object
+      description: Opt-in native context compaction.
+      properties:
+        instructions:
+          type:
+          - string
+          - 'null'
+          description: Custom summarization instructions, replacing the provider default.
+        pause_after_compaction:
           type:
           - boolean
           - 'null'
-    AIText:
-      type: object
-      required:
-      - text
-      properties:
-        text:
-          type: string
-    AIToolCall:
-      type: object
-      required:
-      - call_id
-      - id
-      - provider_call_id
-      - function
-      properties:
-        additional_params: {}
-        call_id:
-          type: string
-          description: Stable Caido ID shared with the corresponding tool result.
-        function:
-          $ref: '#/components/schemas/AIToolFunction'
-        id:
-          type: string
+          description: Stop the turn right after compaction instead of continuing.
+        trigger_input_tokens:
+          type:
+          - integer
+          - 'null'
+          format: int64
           description: |-
-            Original tool call ID from Rig. Keep it when returning this call in message history because
-            the provider expects the same value.
-        provider_call_id:
+            Input-token threshold that triggers compaction, when the API profile
+            supports a trigger. `None` uses the provider default.
+          minimum: 0
+    CompactionPart:
+      type: object
+      description: |-
+        A native-compaction item produced by the provider.
+
+        Anthropic uses [`CompactionPart::content`], while OpenAI Responses uses
+        [`CompactionPart::encrypted_content`]. Replay the part unmodified.
+      properties:
+        content:
           type:
           - string
           - 'null'
-          description: |-
-            Original `call_id` from Rig, used by APIs such as OpenAI Responses. Keep it when returning
-            this call, using `null` when the provider does not supply one.
-        signature:
+          description: Human-readable summary (Anthropic).
+        encrypted_content:
           type:
           - string
           - 'null'
-    AIToolCallDelta:
-      type: object
-      required:
-      - call_id
-      - content
-      properties:
-        call_id:
-          type: string
-        content:
-          $ref: '#/components/schemas/AIToolCallDeltaContent'
-    AIToolCallDeltaContent:
-      oneOf:
-      - type: object
-        required:
-        - name
-        - kind
-        properties:
-          kind:
-            type: string
-            enum:
-            - name
-          name:
-            type: string
-      - type: object
-        required:
-        - delta
-        - kind
-        properties:
-          delta:
-            type: string
-          kind:
-            type: string
-            enum:
-            - delta
-    AIToolDefinition:
-      type: object
-      required:
-      - name
-      - description
-      - parameters
-      properties:
-        description:
-          type: string
-        name:
-          type: string
-        parameters: {}
-    AIToolFunction:
-      type: object
-      required:
-      - name
-      - arguments
-      properties:
-        arguments: {}
-        name:
-          type: string
-    AIToolResult:
-      type: object
-      required:
-      - call_id
-      - content
-      properties:
-        call_id:
-          type: string
-          description: Caido ID of the tool call this result answers.
-        content:
-          type: array
-          items:
-            $ref: '#/components/schemas/AIToolResultContent'
+          description: Opaque compacted state (OpenAI Responses).
         id:
           type:
           - string
           - 'null'
-          description: Original tool call ID from Rig. When omitted, it is copied from the preceding tool call.
-        provider_call_id:
-          type:
-          - string
-          - 'null'
-          description: |-
-            Original `call_id` from Rig, used by APIs such as OpenAI Responses. When omitted, it is
-            copied from the preceding tool call.
-    AIToolResultContent:
-      oneOf:
-      - allOf:
-        - $ref: '#/components/schemas/AIText'
-        - type: object
-          required:
-          - kind
-          properties:
-            kind:
-              type: string
-              enum:
-              - text
-    AIUsage:
-      type: object
-      required:
-      - input_tokens
-      - output_tokens
-      - total_tokens
-      - cached_input_tokens
-      - cache_creation_input_tokens
-      - tool_use_prompt_tokens
-      - reasoning_tokens
-      properties:
-        cache_creation_input_tokens:
-          type: integer
-          format: int64
-          minimum: 0
-        cached_input_tokens:
-          type: integer
-          format: int64
-          minimum: 0
-        input_tokens:
-          type: integer
-          format: int64
-          minimum: 0
-        output_tokens:
-          type: integer
-          format: int64
-          minimum: 0
-        reasoning_tokens:
-          type: integer
-          format: int64
-          minimum: 0
-        tool_use_prompt_tokens:
-          type: integer
-          format: int64
-          minimum: 0
-        total_tokens:
-          type: integer
-          format: int64
-          minimum: 0
-    AIUserContent:
-      oneOf:
-      - allOf:
-        - $ref: '#/components/schemas/AIText'
-        - type: object
-          required:
-          - kind
-          properties:
-            kind:
-              type: string
-              enum:
-              - text
-      - allOf:
-        - $ref: '#/components/schemas/AIToolResult'
-        - type: object
-          required:
-          - kind
-          properties:
-            kind:
-              type: string
-              enum:
-              - toolresult
-    CompletionCapabilities:
-      type: object
-      required:
-      - reasoning
-      - structured_output
-      properties:
-        reasoning:
-          type: boolean
-        structured_output:
-          type: boolean
+          description: Provider item id (OpenAI `cmp_...`).
     CompletionInput:
       type: object
       required:
-      - stream
       - model
       - request
       properties:
         model:
           $ref: '#/components/schemas/CompletionModel'
         request:
-          $ref: '#/components/schemas/CompletionRequest'
-        stream:
-          type: boolean
+          $ref: '#/components/schemas/Request'
     CompletionModel:
       type: object
       required:
       - provider
       - name
       properties:
-        capabilities:
-          oneOf:
-          - type: 'null'
-          - $ref: '#/components/schemas/CompletionCapabilities'
         name:
           type: string
         provider:
           type: string
-    CompletionPayload:
+    Error:
       type: object
       required:
-      - choices
+      - kind
+      - message
+      - origin
+      - model
+      - status
+      - code
+      - request_id
+      - retry_after_ms
+      - retryable
       properties:
-        choices:
-          type: array
-          items:
-            $ref: '#/components/schemas/AIAssistantContent'
-        usage:
-          oneOf:
-          - type: 'null'
-          - $ref: '#/components/schemas/AIUsage'
-    CompletionReasoning:
-      type: object
-      required:
-      - effort
-      properties:
-        effort:
-          $ref: '#/components/schemas/AIReasoningEffort'
-    CompletionRequest:
-      type: object
-      required:
-      - messages
-      properties:
-        max_tokens:
+        code:
+          type:
+          - string
+          - 'null'
+        kind:
+          $ref: '#/components/schemas/ErrorKind'
+        message:
+          type: string
+        model:
+          type:
+          - string
+          - 'null'
+        origin:
+          type:
+          - string
+          - 'null'
+        request_id:
+          type:
+          - string
+          - 'null'
+        retry_after_ms:
           type:
           - integer
           - 'null'
           format: int64
+          description: Provider-suggested retry delay in milliseconds.
           minimum: 0
-        messages:
-          type: array
-          items:
-            $ref: '#/components/schemas/AIMessage'
-        reasoning:
-          oneOf:
-          - type: 'null'
-          - $ref: '#/components/schemas/CompletionReasoning'
-        structured_output:
-          oneOf:
-          - type: 'null'
-          - $ref: '#/components/schemas/AIStructuredOutput'
-        system:
+        retryable:
+          type: boolean
+        status:
           type:
-          - string
+          - integer
           - 'null'
-        temperature:
-          type:
-          - number
-          - 'null'
-          format: double
-        tools:
-          type:
-          - array
-          - 'null'
-          items:
-            $ref: '#/components/schemas/AIToolDefinition'
+          format: int32
+          minimum: 0
+    ErrorKind:
+      type: string
+      description: The class of an [`Error`].
+      enum:
+      - configuration
+      - invalid-request
+      - unsupported-capability
+      - unsupported-content
+      - authentication
+      - permission
+      - content-policy
+      - not-found
+      - rate-limited
+      - overloaded
+      - context-length
+      - transport
+      - timeout
+      - malformed-response
+      - truncated-stream
+      - provider
     ErrorResponse:
       type: object
       required:
@@ -782,6 +578,30 @@ components:
           type: string
         message:
           type: string
+    Finish:
+      type: object
+      description: Finish reason plus the provider's raw value.
+      required:
+      - reason
+      properties:
+        raw:
+          type:
+          - string
+          - 'null'
+          description: The provider's untranslated finish/stop reason string.
+        reason:
+          $ref: '#/components/schemas/FinishReason'
+    FinishReason:
+      type: string
+      description: Normalized reason a completion stopped.
+      enum:
+      - stop
+      - length
+      - tool-calls
+      - content-filter
+      - paused
+      - error
+      - other
     FunctionErrorPayload:
       oneOf:
       - type: object
@@ -862,6 +682,35 @@ components:
             type: string
             enum:
             - error
+    GenerateResult:
+      type: object
+      description: The result of a non-streaming generate call (or of collecting a stream).
+      required:
+      - content
+      - finish
+      - usage
+      - warnings
+      - response
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssistantPart'
+          description: Ordered assistant output parts.
+        finish:
+          $ref: '#/components/schemas/Finish'
+        provider_metadata:
+          $ref: '#/components/schemas/ProviderMetadata'
+          description: Namespaced provider extras for the whole response.
+        response:
+          $ref: '#/components/schemas/ResponseMetadata'
+        usage:
+          $ref: '#/components/schemas/Usage'
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/Warning'
+          description: Warnings raised while lowering the request.
     HealthPayload:
       type: object
       required:
@@ -877,5 +726,1030 @@ components:
           type: string
     ID:
       type: string
+    Message:
+      oneOf:
+      - type: object
+        description: End-user input.
+        required:
+        - content
+        - role
+        properties:
+          content:
+            type: array
+            items:
+              $ref: '#/components/schemas/UserPart'
+          role:
+            type: string
+            enum:
+            - user
+      - type: object
+        description: A prior model turn, replayed for context.
+        required:
+        - content
+        - role
+        properties:
+          content:
+            type: array
+            items:
+              $ref: '#/components/schemas/AssistantPart'
+          provider_metadata:
+            $ref: '#/components/schemas/ProviderMetadata'
+            description: |-
+              Provider metadata for the whole turn. Decoders stamp the producing
+              profile here (`{"cogfer": {"profile": ...}}`) so lowering can
+              drop opaque state another provider cannot verify. Preserve it when
+              rebuilding history.
+          role:
+            type: string
+            enum:
+            - assistant
+      - type: object
+        description: Results for tool calls issued by a prior assistant turn.
+        required:
+        - content
+        - role
+        properties:
+          content:
+            type: array
+            items:
+              $ref: '#/components/schemas/ToolResultPart'
+          role:
+            type: string
+            enum:
+            - tool
+      description: A conversation message.
+    ProviderMetadata:
+      type: object
+      description: |-
+        Provider-specific JSON grouped by API-profile namespace.
+
+        The library reserves `"cogfer"` for its own fields. Custom metadata
+        should use another namespace.
+    ProviderToolPart:
+      type: object
+      description: |-
+        A provider-executed tool item preserved as exact JSON.
+
+        Matching API profiles replay `payload` verbatim. Others skip it with a warning.
+      required:
+      - kind
+      - namespace
+      - payload
+      properties:
+        id:
+          type:
+          - string
+          - 'null'
+          description: Provider item/block id, when present.
+        kind:
+          type: string
+          description: Provider item or block type.
+        namespace:
+          type: string
+          description: |-
+            ApiProfile namespace that produced and can replay the payload
+            (`"openai"`, `"anthropic"`).
+        payload:
+          description: The raw provider JSON, replayed verbatim.
+    ReasoningConfig:
+      oneOf:
+      - type: object
+        description: Disable reasoning when the selected model supports an off mode.
+        required:
+        - kind
+        properties:
+          kind:
+            type: string
+            enum:
+            - disabled
+      - type: object
+        description: Use the provider's discrete effort control.
+        required:
+        - effort
+        - kind
+        properties:
+          effort:
+            $ref: '#/components/schemas/ReasoningEffort'
+          kind:
+            type: string
+            enum:
+            - effort
+          output:
+            oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/ReasoningOutput'
+              description: Override whether visible reasoning appears in the response.
+      - type: object
+        description: Use an exact provider reasoning-token budget.
+        required:
+        - tokens
+        - kind
+        properties:
+          kind:
+            type: string
+            enum:
+            - budget
+          output:
+            oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/ReasoningOutput'
+              description: Override whether visible reasoning appears in the response.
+          tokens:
+            type: integer
+            format: int32
+            minimum: 1
+      description: |-
+        Exclusive reasoning configuration. Unset preserves the provider default.
+        Either form is accepted on every profile. See [`Request::reasoning`] for
+        how a form the profile lacks is approximated.
+    ReasoningContent:
+      oneOf:
+      - type: object
+        description: |-
+          Raw reasoning text, optionally signed (Anthropic thinking signature,
+          Gemini thought signature).
+        required:
+        - text
+        - kind
+        properties:
+          kind:
+            type: string
+            enum:
+            - text
+          signature:
+            type:
+            - string
+            - 'null'
+          text:
+            type: string
+      - type: object
+        description: Provider-generated reasoning summary (OpenAI Responses).
+        required:
+        - text
+        - kind
+        properties:
+          kind:
+            type: string
+            enum:
+            - summary
+          text:
+            type: string
+      - type: object
+        description: |-
+          Encrypted reasoning payload for stateless replay (OpenAI Responses
+          `encrypted_content`).
+        required:
+        - data
+        - kind
+        properties:
+          data:
+            type: string
+          kind:
+            type: string
+            enum:
+            - encrypted
+      - type: object
+        description: Safety-redacted reasoning (Anthropic `redacted_thinking`). Replay verbatim.
+        required:
+        - data
+        - kind
+        properties:
+          data:
+            type: string
+          kind:
+            type: string
+            enum:
+            - redacted
+      description: One piece of reasoning content.
+    ReasoningEffort:
+      type: string
+      description: Discrete reasoning effort. [`ReasoningEffort::as_str`] is the wire value.
+      enum:
+      - minimal
+      - low
+      - medium
+      - high
+      - xhigh
+      - max
+    ReasoningOutput:
+      type: string
+      description: Whether enabled reasoning is visible in the response.
+      enum:
+      - include
+      - omit
+    ReasoningPart:
+      type: object
+      description: A reasoning block emitted by a model, preserved for replay.
+      required:
+      - content
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReasoningContent'
+          description: Typed reasoning content in provider order.
+        id:
+          type:
+          - string
+          - 'null'
+          description: Provider block or item id.
+        provider_metadata:
+          $ref: '#/components/schemas/ProviderMetadata'
+          description: |-
+            Namespaced provider extras required for replay
+            (e.g. OpenRouter `reasoning_details`).
+    Request:
+      type: object
+      description: |-
+        A protocol-independent language-model request.
+
+        Unset optional fields are not sent. A setting that a profile can safely
+        omit produces a structured [`crate::Warning`], while content or operations
+        that cannot be represented return an error. Model-specific support remains the
+        provider's authority, and this crate does not infer or coerce settings from
+        model identifiers.
+
+        `Debug` redacts [`Request::extra_headers`] values because callers may put
+        credentials there, and serde skips them so a deserialized request never
+        carries caller-chosen headers.
+      required:
+      - messages
+      properties:
+        compaction:
+          oneOf:
+          - type: 'null'
+          - $ref: '#/components/schemas/Compaction'
+            description: Opt-in native context compaction (OpenAI Responses / Anthropic).
+        frequency_penalty:
+          type:
+          - number
+          - 'null'
+          format: double
+        include_raw_events:
+          type: boolean
+          description: |-
+            When streaming, also emit [`crate::StreamEvent::Raw`] events carrying
+            unrecognized provider payloads.
+        max_output_tokens:
+          type:
+          - integer
+          - 'null'
+          format: int32
+          minimum: 1
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+          description: Conversation messages.
+        parallel_tool_calls:
+          type:
+          - boolean
+          - 'null'
+          description: Whether the model may issue several tool calls in one turn.
+        presence_penalty:
+          type:
+          - number
+          - 'null'
+          format: double
+        provider_options:
+          $ref: '#/components/schemas/ProviderMetadata'
+          description: |-
+            Provider-specific request parameters merged according to
+            [`ProviderMetadata::merge`]: the escape hatch for anything the typed
+            settings and their per-profile approximations cannot express.
+        reasoning:
+          oneOf:
+          - type: 'null'
+          - $ref: '#/components/schemas/ReasoningConfig'
+            description: |-
+              Reasoning/thinking configuration. `None` uses the provider default.
+
+              Profiles differ in whether they take an effort or a token budget and
+              in which efforts they accept. See
+              [`ModelCapabilities::reasoning`](crate::ModelCapabilities::reasoning).
+              Lowering sends the closest control the profile has and reports the
+              substitution as a [`WarningKind::ApproximatedSetting`](crate::WarningKind::ApproximatedSetting).
+        seed:
+          type:
+          - integer
+          - 'null'
+          format: int64
+          minimum: 0
+        stop_sequences:
+          type: array
+          items:
+            type: string
+        structured_output:
+          oneOf:
+          - type: 'null'
+          - $ref: '#/components/schemas/StructuredOutput'
+            description: JSON-schema constrained output.
+        system:
+          type:
+          - string
+          - 'null'
+          description: System or developer instructions kept outside message history.
+        temperature:
+          type:
+          - number
+          - 'null'
+          format: double
+        tool_choice:
+          oneOf:
+          - type: 'null'
+          - $ref: '#/components/schemas/ToolChoice'
+        tools:
+          type: array
+          items:
+            $ref: '#/components/schemas/ToolDefinition'
+          description: Tools the model may call.
+        top_k:
+          type:
+          - integer
+          - 'null'
+          format: int32
+          minimum: 1
+        top_p:
+          type:
+          - number
+          - 'null'
+          format: double
+    ResponseMetadata:
+      type: object
+      description: Identifying metadata for one provider response.
+      properties:
+        id:
+          type:
+          - string
+          - 'null'
+          description: Provider response id (`resp_...`, `msg_...`, `chatcmpl-...`).
+        model:
+          type:
+          - string
+          - 'null'
+          description: The concrete model that served the request, as reported by the provider.
+        request_id:
+          type:
+          - string
+          - 'null'
+          description: Provider request id from response headers, for support tickets.
     SafePath:
       type: string
+    StreamEvent:
+      oneOf:
+      - type: object
+        description: Always first. Carries the warnings raised while lowering the request.
+        required:
+        - warnings
+        - kind
+        properties:
+          kind:
+            type: string
+            enum:
+            - stream-start
+          warnings:
+            type: array
+            items:
+              $ref: '#/components/schemas/Warning'
+      - allOf:
+        - $ref: '#/components/schemas/ResponseMetadata'
+          description: Response identity, as soon as the provider reveals it.
+        - type: object
+          required:
+          - kind
+          properties:
+            kind:
+              type: string
+              enum:
+              - response-metadata
+        description: Response identity, as soon as the provider reveals it.
+      - type: object
+        required:
+        - id
+        - provider_metadata
+        - kind
+        properties:
+          id:
+            type: string
+          kind:
+            type: string
+            enum:
+            - text-start
+          provider_metadata:
+            $ref: '#/components/schemas/ProviderMetadata'
+            description: Metadata known at start and merged into the block's `TextEnd` event.
+      - type: object
+        required:
+        - id
+        - delta
+        - kind
+        properties:
+          delta:
+            type: string
+          id:
+            type: string
+          kind:
+            type: string
+            enum:
+            - text-delta
+      - type: object
+        required:
+        - id
+        - provider_metadata
+        - kind
+        properties:
+          id:
+            type: string
+          kind:
+            type: string
+            enum:
+            - text-end
+          provider_metadata:
+            $ref: '#/components/schemas/ProviderMetadata'
+            description: |-
+              Provider extras for the whole text block (e.g. Gemini thought
+              signatures attached to text parts).
+      - type: object
+        required:
+        - id
+        - kind
+        properties:
+          id:
+            type: string
+          kind:
+            type: string
+            enum:
+            - reasoning-start
+      - type: object
+        description: Incremental human-visible reasoning text.
+        required:
+        - id
+        - delta
+        - kind
+        properties:
+          delta:
+            type: string
+          id:
+            type: string
+          kind:
+            type: string
+            enum:
+            - reasoning-delta
+      - type: object
+        description: |-
+          Carries the complete typed reasoning part (signatures, encrypted and
+          redacted content included) so history replay needs nothing else.
+        required:
+        - id
+        - part
+        - kind
+        properties:
+          id:
+            type: string
+          kind:
+            type: string
+            enum:
+            - reasoning-end
+          part:
+            $ref: '#/components/schemas/ReasoningPart'
+      - type: object
+        required:
+        - call_id
+        - name
+        - kind
+        properties:
+          call_id:
+            type: string
+          item_id:
+            type:
+            - string
+            - 'null'
+          kind:
+            type: string
+            enum:
+            - tool-input-start
+          name:
+            type: string
+      - type: object
+        description: Incremental raw-JSON argument text.
+        required:
+        - call_id
+        - delta
+        - kind
+        properties:
+          call_id:
+            type: string
+          delta:
+            type: string
+          kind:
+            type: string
+            enum:
+            - tool-input-delta
+      - type: object
+        required:
+        - call_id
+        - kind
+        properties:
+          call_id:
+            type: string
+          kind:
+            type: string
+            enum:
+            - tool-input-end
+      - allOf:
+        - $ref: '#/components/schemas/ToolCall'
+          description: The complete tool call, emitted immediately after its `ToolInputEnd`.
+        - type: object
+          required:
+          - kind
+          properties:
+            kind:
+              type: string
+              enum:
+              - tool-call
+        description: The complete tool call, emitted immediately after its `ToolInputEnd`.
+      - type: object
+        description: |-
+          The provider began compacting context. Frontends can surface progress
+          during what would otherwise be a long silent interval.
+        required:
+        - kind
+        properties:
+          kind:
+            type: string
+            enum:
+            - compaction-start
+      - type: object
+        description: |-
+          Display-only compaction summary text before the authoritative part.
+          Anthropic streams this text. OpenAI compaction is opaque.
+        required:
+        - delta
+        - kind
+        properties:
+          delta:
+            type: string
+          kind:
+            type: string
+            enum:
+            - compaction-delta
+      - type: object
+        description: |-
+          The in-flight compaction was abandoned before the provider supplied an
+          authoritative replayable part.
+        required:
+        - kind
+        properties:
+          kind:
+            type: string
+            enum:
+            - compaction-abort
+      - allOf:
+        - $ref: '#/components/schemas/CompactionPart'
+          description: A provider-produced compaction item for same-profile replay.
+        - type: object
+          required:
+          - kind
+          properties:
+            kind:
+              type: string
+              enum:
+              - compaction
+        description: A provider-produced compaction item for same-profile replay.
+      - type: object
+        description: A provider-executed tool started. `kind` is its item or block type.
+        required:
+        - id
+        - tool_kind
+        - kind
+        properties:
+          id:
+            type: string
+          kind:
+            type: string
+            enum:
+            - provider-tool-start
+          tool_kind:
+            type: string
+      - type: object
+        description: A provider-named status change for an in-flight server tool.
+        required:
+        - id
+        - status
+        - kind
+        properties:
+          id:
+            type: string
+          kind:
+            type: string
+            enum:
+            - provider-tool-update
+          status:
+            type: string
+      - type: object
+        description: The provider tool stopped without an authoritative completed item.
+        required:
+        - id
+        - kind
+        properties:
+          id:
+            type: string
+          kind:
+            type: string
+            enum:
+            - provider-tool-abort
+      - type: object
+        description: |-
+          The finished server-side tool item, exactly as the provider reported
+          it. Also lands in the result content for same-profile replay.
+        required:
+        - provider_tool
+        - kind
+        properties:
+          kind:
+            type: string
+            enum:
+            - provider-tool-end
+          provider_tool:
+            $ref: '#/components/schemas/ProviderToolPart'
+      - type: object
+        description: |-
+          A source citation / grounding reference. `text_id` names the text
+          block it annotates when the provider ties citations to one.
+        required:
+        - citation
+        - kind
+        properties:
+          citation:
+            $ref: '#/components/schemas/Citation'
+          kind:
+            type: string
+            enum:
+            - citation
+          text_id:
+            type:
+            - string
+            - 'null'
+      - type: object
+        description: |-
+          Response-level namespaced provider extras discovered mid-stream
+          (e.g. Anthropic applied context edits). Merged into
+          [`crate::GenerateResult::provider_metadata`] by the accumulator.
+        required:
+        - provider_metadata
+        - kind
+        properties:
+          kind:
+            type: string
+            enum:
+            - provider-metadata
+          provider_metadata:
+            $ref: '#/components/schemas/ProviderMetadata'
+      - type: object
+        description: |-
+          An unrecognized provider payload, only when
+          [`crate::Request::include_raw_events`] is set.
+        required:
+        - value
+        - kind
+        properties:
+          kind:
+            type: string
+            enum:
+            - raw
+          value: {}
+      - type: object
+        description: A stream failure followed by an error `Finish`.
+        required:
+        - error
+        - kind
+        properties:
+          error:
+            $ref: '#/components/schemas/Error'
+          kind:
+            type: string
+            enum:
+            - error
+      - type: object
+        description: Always last, exactly once.
+        required:
+        - finish
+        - usage
+        - kind
+        properties:
+          finish:
+            $ref: '#/components/schemas/Finish'
+          kind:
+            type: string
+            enum:
+            - finish
+          usage:
+            $ref: '#/components/schemas/Usage'
+      description: |-
+        A normalized stream event.
+
+        Serializes with a `kind` tag. Variants whose payload has its own `kind`
+        field nest or rename it so the tag stays unique.
+    StructuredOutput:
+      type: object
+      description: JSON-schema constrained output configuration.
+      required:
+      - name
+      - schema
+      properties:
+        description:
+          type:
+          - string
+          - 'null'
+        name:
+          type: string
+          description: Schema name (required by OpenAI protocols).
+        schema:
+          description: The JSON Schema the output must satisfy.
+        strict:
+          type: boolean
+          description: Request provider-side strict validation where supported.
+    ToolCall:
+      type: object
+      description: |-
+        A tool call requested by the model.
+
+        # Identity
+
+        Only [`call_id`](Self::call_id) matters to callers: it is always present
+        and it is what a [`ToolResultPart`] correlates on. [`item_id`](Self::item_id)
+        is an opaque provider handle that exists so a conversation can be replayed
+        to the provider that produced it. Build results with
+        [`ToolResultPart::for_call`] and it is carried over automatically.
+
+        Provider profiles map tool ids as follows:
+
+        - Anthropic keeps its tool-use id, typically `toolu_...`, as `call_id` and
+          has no `item_id`.
+        - Chat Completions profiles keep the provider's tool-call id as `call_id`
+          and have no `item_id`.
+        - Responses profiles keep the provider's correlation id as `call_id` and
+          the function-call item handle, typically `fc_...`, as `item_id`.
+        - Gemini uses the provider id for both fields when available. When Gemini
+          omits the id, `call_id` is synthesized and `item_id` is absent.
+      required:
+      - call_id
+      - name
+      - arguments
+      properties:
+        arguments:
+          type: string
+          description: |-
+            Raw provider JSON arguments. A blank value (zero-argument call) is
+            normalized to `{}`.
+        call_id:
+          type: string
+          description: |-
+            Stable correlation id, synthesized when the provider omits one. Tool
+            results reference this id. Whenever the provider supplies a single id,
+            this is it.
+        item_id:
+          type:
+          - string
+          - 'null'
+          description: |-
+            The provider's own handle for the call, sent back on replay: OpenAI
+            Responses `fc_...` (as `function_call.id`) and Gemini's
+            `functionCall.id` (on the call and on its `functionResponse`). `None`
+            when the provider keeps a single id, which is already `call_id`
+            (Anthropic, Chat Completions), or gave none at all (a Gemini call with
+            a synthesized `call_id`, which then stays local).
+        name:
+          type: string
+        provider_metadata:
+          $ref: '#/components/schemas/ProviderMetadata'
+          description: Namespaced provider extras (e.g. Gemini `thoughtSignature`).
+    ToolChoice:
+      oneOf:
+      - type: object
+        description: The model decides (provider default).
+        required:
+        - kind
+        properties:
+          kind:
+            type: string
+            enum:
+            - auto
+      - type: object
+        description: The model must not call tools.
+        required:
+        - kind
+        properties:
+          kind:
+            type: string
+            enum:
+            - none
+      - type: object
+        description: The model must call at least one tool.
+        required:
+        - kind
+        properties:
+          kind:
+            type: string
+            enum:
+            - required
+      - type: object
+        description: The model must call this specific tool.
+        required:
+        - name
+        - kind
+        properties:
+          kind:
+            type: string
+            enum:
+            - tool
+          name:
+            type: string
+      description: How the model chooses tools.
+    ToolDefinition:
+      type: object
+      description: A tool the model may call.
+      required:
+      - name
+      - parameters
+      properties:
+        description:
+          type:
+          - string
+          - 'null'
+        name:
+          type: string
+        parameters:
+          description: JSON Schema for the arguments object.
+        strict:
+          type:
+          - boolean
+          - 'null'
+          description: Request provider-side strict schema validation where supported.
+    ToolResultContent:
+      oneOf:
+      - type: object
+        required:
+        - text
+        - kind
+        properties:
+          kind:
+            type: string
+            enum:
+            - text
+          text:
+            type: string
+      - type: object
+        required:
+        - value
+        - kind
+        properties:
+          kind:
+            type: string
+            enum:
+            - json
+          value: {}
+      description: Payload of a tool result.
+    ToolResultPart:
+      type: object
+      description: |-
+        The result of executing one tool call, sent back to the model.
+
+        Only [`call_id`](Self::call_id) is required. [`item_id`](Self::item_id)
+        and [`name`](Self::name) mirror the originating [`ToolCall`] (see its
+        *Identity* section) and are recovered from the matching call earlier in
+        the conversation when left `None`. Set them explicitly only when that call
+        is not part of the request. [`ToolResultPart::for_call`] copies them for you.
+      required:
+      - call_id
+      - content
+      properties:
+        call_id:
+          type: string
+          description: Correlates with [`ToolCall::call_id`].
+        content:
+          $ref: '#/components/schemas/ToolResultContent'
+        is_error:
+          type: boolean
+          description: Marks the result as an execution error where the protocol supports it.
+        item_id:
+          type:
+          - string
+          - 'null'
+          description: '[`ToolCall::item_id`] of the originating call.'
+        name:
+          type:
+          - string
+          - 'null'
+          description: |-
+            [`ToolCall::name`] of the originating call. Required on the wire by
+            Gemini.
+        provider_metadata:
+          $ref: '#/components/schemas/ProviderMetadata'
+          description: Namespaced provider extras (e.g. Anthropic `cache_control`).
+    Usage:
+      type: object
+      description: |-
+        Token usage for a completion.
+
+        Every field is optional: `None` means the provider did not report the
+        value, which is distinct from an explicit `0`.
+
+        `input_tokens` counts fresh input after subtracting provider cache reads
+        and writes. [`Usage::total_input_tokens`] returns the full prompt size.
+        Multi-pass turns report the summed cost of every pass.
+      required:
+      - input_tokens
+      - output_tokens
+      - total_tokens
+      - cached_input_tokens
+      - cache_creation_input_tokens
+      - reasoning_tokens
+      - tool_use_prompt_tokens
+      properties:
+        cache_creation_input_tokens:
+          type:
+          - integer
+          - 'null'
+          format: int64
+          description: Tokens written to a provider prompt cache (Anthropic).
+          minimum: 0
+        cached_input_tokens:
+          type:
+          - integer
+          - 'null'
+          format: int64
+          description: Tokens read from a provider prompt cache.
+          minimum: 0
+        input_tokens:
+          type:
+          - integer
+          - 'null'
+          format: int64
+          minimum: 0
+        output_tokens:
+          type:
+          - integer
+          - 'null'
+          format: int64
+          minimum: 0
+        reasoning_tokens:
+          type:
+          - integer
+          - 'null'
+          format: int64
+          description: Reasoning/thinking tokens included in `output_tokens`.
+          minimum: 0
+        tool_use_prompt_tokens:
+          type:
+          - integer
+          - 'null'
+          format: int64
+          description: Tokens added to the prompt for tool definitions (Gemini).
+          minimum: 0
+        total_tokens:
+          type:
+          - integer
+          - 'null'
+          format: int64
+          minimum: 0
+    UserPart:
+      oneOf:
+      - type: object
+        required:
+        - text
+        - kind
+        properties:
+          kind:
+            type: string
+            enum:
+            - text
+          provider_metadata:
+            $ref: '#/components/schemas/ProviderMetadata'
+            description: Namespaced provider extras (e.g. Anthropic `cache_control`).
+          text:
+            type: string
+      description: Content inside a [`Message::User`].
+    Warning:
+      type: object
+      description: A structured, non-fatal compatibility warning.
+      required:
+      - kind
+      - message
+      properties:
+        kind:
+          $ref: '#/components/schemas/WarningKind'
+        message:
+          type: string
+        subject:
+          type:
+          - string
+          - 'null'
+          description: The setting the warning concerns (e.g. `"temperature"`).
+    WarningKind:
+      type: string
+      description: Category of a [`Warning`].
+      enum:
+      - unsupported-setting
+      - approximated-setting
+      - other

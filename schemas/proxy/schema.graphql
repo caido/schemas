@@ -1,25 +1,217 @@
+type AIAwsProfile {
+  name: String!
+  region: String
+}
+
 enum AIErrorReason {
   INVALID_AUTHENTICATION
-  PROVIDER_NOT_CONFIGURED
+  KIND_TAKEN
+  PROVIDER_ERROR
   REQUEST_MALFORMED
+  SIGN_IN_DENIED
+  SIGN_IN_EXPIRED
+}
+
+type AIModel {
+  capabilities: AIModelCapabilities!
+  displayName: String!
+  """
+  Only custom models have one.
+  """
+  id: ID
+  limits: AIModelLimits
+  """
+  The model id sent to the provider, may contain `/`.
+  """
+  name: String!
+  providerId: ID!
+  reasoningEfforts: [AIReasoningEffort!]
+  source: AIModelSource!
+}
+
+type AIModelCapabilities {
+  compaction: AIModelCapabilitySupport!
+  reasoning: AIModelCapabilitySupport!
+  structuredOutput: AIModelCapabilitySupport!
+  temperature: AIModelCapabilitySupport!
+  toolCalling: AIModelCapabilitySupport!
+}
+
+input AIModelCapabilitiesInput {
+  compaction: AIModelCapabilitySupport!
+  reasoning: AIModelCapabilitySupport!
+  structuredOutput: AIModelCapabilitySupport!
+  temperature: AIModelCapabilitySupport!
+  toolCalling: AIModelCapabilitySupport!
+}
+
+enum AIModelCapabilitySupport {
+  SUPPORTED
+  UNKNOWN
+  UNSUPPORTED
+}
+
+type AIModelLimits {
+  context: Int
+  output: Int
+}
+
+input AIModelLimitsInput {
+  context: Int
+  output: Int
+}
+
+enum AIModelSource {
+  """
+  Shipped with Caido, it cannot be edited.
+  """
+  CATALOG
+  """
+  Added by the user. It replaces the catalog model of the same name.
+  """
+  CUSTOM
 }
 
 type AIProvider {
   alias: Alias!
   api: AIProviderAPI!
-  apiKey: Sensitive!
+  auth: AIProviderAuth
+  authStatus: AIProviderAuthStatus!
   createdAt: DateTime!
   id: ID!
+  kind: AIProviderKind!
+  """
+  Bedrock only.
+  """
+  region: String
   updatedAt: DateTime!
   url: Url
 }
 
 enum AIProviderAPI {
   ANTHROPIC
+  BEDROCK
+  CHATGPT_RESPONSE
   GEMINI
   OPENAI_COMPLETION
   OPENAI_RESPONSE
   OPENROUTER
+  XAI_COMPLETION
+  XAI_RESPONSE
+}
+
+union AIProviderAuth =
+  | AIProviderAuthApiKey
+  | AIProviderAuthOAuth
+  | AIProviderAuthAws
+  | AIProviderAuthAwsProfile
+
+type AIProviderAuthApiKey {
+  apiKey: Sensitive!
+}
+
+input AIProviderAuthApiKeyInput {
+  apiKey: Sensitive!
+}
+
+type AIProviderAuthAws {
+  accessKeyId: Sensitive!
+  """
+  Whether the credentials are temporary, and so will expire.
+  """
+  hasSessionToken: Boolean!
+}
+
+input AIProviderAuthAwsInput {
+  accessKeyId: Sensitive!
+  secretAccessKey: Sensitive!
+  sessionToken: Sensitive
+}
+
+"""
+A profile from the AWS configuration of the machine running Caido.
+"""
+type AIProviderAuthAwsProfile {
+  profile: String!
+}
+
+"""
+A profile name from the AWS configuration of the machine running Caido.
+"""
+input AIProviderAuthAwsProfileInput {
+  profile: String!
+}
+
+input AIProviderAuthInput @oneOf {
+  apiKey: AIProviderAuthApiKeyInput
+  aws: AIProviderAuthAwsInput
+  awsProfile: AIProviderAuthAwsProfileInput
+}
+
+type AIProviderAuthOAuth {
+  expiresAt: DateTime
+}
+
+enum AIProviderAuthStatus {
+  INVALID
+  UNVERIFIED
+  VALID
+}
+
+input AIProviderConfigurationInput @oneOf {
+  anthropic: AnthropicProviderConfigurationInput
+  bedrock: BedrockProviderConfigurationInput
+  custom: CustomAIProviderConfigurationInput
+  gemini: GeminiProviderConfigurationInput
+  openAI: OpenAIProviderConfigurationInput
+  openRouter: OpenRouterProviderConfigurationInput
+  xai: XaiProviderConfigurationInput
+}
+
+enum AIProviderKind {
+  ANTHROPIC
+  BEDROCK
+  CHATGPT
+  CUSTOM
+  GEMINI
+  OPENAI
+  OPENROUTER
+  XAI
+}
+
+type AIProviderMetadata {
+  alias: Alias!
+  api: AIProviderAPI!
+  id: ID!
+  kind: AIProviderKind!
+}
+
+type AIProviderModels {
+  models: [AIModel!]!
+  provider: AIProviderMetadata!
+}
+
+enum AIProviderOAuthKind {
+  CHATGPT
+  XAI
+}
+
+type AIProviderOAuthTask implements Task {
+  createdAt: DateTime!
+  expiresAt: DateTime!
+  id: ID!
+  userCode: String!
+  verificationUrl: Url!
+  verificationUrlComplete: Url
+}
+
+enum AIReasoningEffort {
+  HIGH
+  LOW
+  MAX
+  MEDIUM
+  MINIMAL
+  XHIGH
 }
 
 type AIUserError implements UserError {
@@ -45,6 +237,10 @@ type AnalyticStatus {
   cloud: Boolean!
   enabled: Boolean!
   local: Boolean!
+}
+
+input AnthropicProviderConfigurationInput {
+  url: Url
 }
 
 enum AssistantErrorReason {
@@ -625,6 +821,14 @@ type BackupUserError implements UserError {
   reason: BackupErrorReason!
 }
 
+input BedrockProviderConfigurationInput {
+  region: String!
+  """
+  Requests stay signed for the region, so only a transparent proxy works.
+  """
+  url: Url
+}
+
 scalar Binary
 
 scalar Blob
@@ -745,13 +949,36 @@ type Count {
   value: Int!
 }
 
-union CreateAIProviderError = AliasTakenUserError | OtherUserError
+union CreateAIModelError = UnknownIdUserError | NameTakenUserError | AIUserError | OtherUserError
+
+input CreateAIModelInput {
+  capabilities: AIModelCapabilitiesInput!
+  displayName: String!
+  limits: AIModelLimitsInput
+  """
+  The model id sent to the provider.
+  """
+  name: String!
+  providerId: ID!
+  reasoningEfforts: [AIReasoningEffort!]
+}
+
+type CreateAIModelPayload {
+  error: CreateAIModelError
+  model: AIModel
+}
+
+union CreateAIProviderError =
+  | AliasTakenUserError
+  | AIUserError
+  | PermissionDeniedUserError
+  | CloudUserError
+  | OtherUserError
 
 input CreateAIProviderInput {
   alias: Alias!
-  api: AIProviderAPI!
-  apiKey: Sensitive!
-  url: Url
+  auth: AIProviderAuthInput
+  configuration: AIProviderConfigurationInput!
 }
 
 type CreateAIProviderPayload {
@@ -873,20 +1100,20 @@ union CreateProjectPayloadError =
   | CloudUserError
   | OtherUserError
 
-union CreateReplayPipelineHttpOneSessionError =
+union CreateReplayPipelineHttpSessionError =
   | PermissionDeniedUserError
   | CloudUserError
   | OtherUserError
 
-type CreateReplayPipelineHttpOneSessionPayload {
-  error: CreateReplayPipelineHttpOneSessionError
-  session: ReplaySessionHttpOnePipeline
+type CreateReplayPipelineHttpSessionPayload {
+  error: CreateReplayPipelineHttpSessionError
+  session: ReplaySessionHttpPipeline
 }
 
 input CreateReplayPipelineSessionInput {
   collectionId: ID
   requestSources: [RequestSourceInput!]!
-  settings: ReplaySessionHttpOnePipelineSettingsInput!
+  settings: ReplaySessionHttpPipelineSettingsInput!
 }
 
 input CreateReplaySessionCollectionInput {
@@ -1202,6 +1429,21 @@ type CurrentProject {
   readOnly: Boolean!
 }
 
+enum CustomAIProviderAPI {
+  ANTHROPIC
+  GEMINI
+  OPENAI_COMPLETION
+  OPENAI_RESPONSE
+  OPENROUTER
+  XAI_COMPLETION
+  XAI_RESPONSE
+}
+
+input CustomAIProviderConfigurationInput {
+  api: CustomAIProviderAPI!
+  url: Url!
+}
+
 type DNSIpResolver {
   ip: String!
 }
@@ -1326,6 +1568,13 @@ input DefinePluginPackageDataInput {
 type DefinePluginPackageDataPayload {
   error: DefinePluginPackageDataError
   success: Boolean!
+}
+
+union DeleteAIModelError = UnknownIdUserError | OtherUserError
+
+type DeleteAIModelPayload {
+  deletedId: ID
+  error: DeleteAIModelError
 }
 
 union DeleteAIProviderError = UnknownIdUserError | OtherUserError
@@ -1895,6 +2144,10 @@ input ForwardInterceptStreamWsMessageInput {
   updateRaw: Blob!
 }
 
+input GeminiProviderConfigurationInput {
+  url: Url
+}
+
 type GlobalConfig {
   address: String!
   project: GlobalConfigProject!
@@ -2294,7 +2547,8 @@ type MutationRoot {
   cancelTask(id: ID!): CancelTaskPayload!
   clearReplayEntryDraft(id: ID!, kind: ReplaySessionKind!): ClearReplayEntryDraftPayload!
   clearSitemapEntries: ClearSitemapEntriesPayload!
-  createAIProvider(input: CreateAIProviderInput!): CreateAIProviderPayload!
+  createAIModel(input: CreateAIModelInput!): CreateAIModelPayload!
+  createAIProvider(input: CreateAIProviderInput!): CreateAIProviderPayload! @cloud
   createAssistantSession(input: CreateAssistantSessionInput!): CreateAssistantSessionPayload! @cloud
   createAutomateSession(input: CreateAutomateSessionInput!): CreateAutomateSessionPayload!
   createBackup(projectId: ID!): CreateBackupPayload!
@@ -2304,9 +2558,9 @@ type MutationRoot {
   createFilterPreset(input: CreateFilterPresetInput!): CreateFilterPresetPayload! @cloud
   createFinding(requestId: ID!, input: CreateFindingInput!): CreateFindingPayload!
   createProject(input: CreateProjectInput!): CreateProjectPayload! @cloud
-  createReplayPipelineHttpOneSession(
+  createReplayPipelineHttpSession(
     input: CreateReplayPipelineSessionInput!
-  ): CreateReplayPipelineHttpOneSessionPayload! @cloud
+  ): CreateReplayPipelineHttpSessionPayload! @cloud
   createReplaySession(input: CreateReplaySessionInput!): CreateReplaySessionPayload! @cloud
   createReplaySessionCollection(
     input: CreateReplaySessionCollectionInput!
@@ -2326,6 +2580,7 @@ type MutationRoot {
     id: ID!
     input: DefinePluginPackageDataInput!
   ): DefinePluginPackageDataPayload!
+  deleteAIModel(id: ID!): DeleteAIModelPayload!
   deleteAIProvider(id: ID!): DeleteAIProviderPayload!
   deleteAssistantSession(id: ID!): DeleteAssistantSessionPayload!
   deleteAutomateEntries(ids: [ID!]!): DeleteAutomateEntriesPayload!
@@ -2426,10 +2681,12 @@ type MutationRoot {
   setGlobalConfigProject(input: SetConfigProjectInput!): SetConfigProjectPayload!
   setInstanceSettings(input: SetInstanceSettingsInput!): SetInstanceSettingsPayload!
   setInterceptOptions(input: InterceptOptionsInput!): SetInterceptOptionsPayload!
-  setPassthroughOptions(input: PassthroughOptionsInput!): SetPassthroughOptionsPayload!
+  setPassthroughOptions(input: SetPassthroughOptionsInput): SetPassthroughOptionsPayload!
   setPluginData(id: ID!, data: JSON!): SetPluginDataPayload!
   setPluginPackageData(id: ID!, key: String!, data: JSON!): SetPluginPackageDataPayload!
   setProjectConfigStream(input: ProjectConfigStreamInput!): SetProjectConfigStreamPayload!
+  startAIProviderOAuthFlow(input: StartAIProviderOAuthFlowInput!): StartAIProviderOAuthFlowPayload!
+    @cloud
   startAuthenticationFlow: StartAuthenticationFlowPayload! @cloud
   startAutomateTask(automateSessionId: ID!): StartAutomateTaskPayload!
   startDeleteStreamWsMessageTask(
@@ -2457,7 +2714,8 @@ type MutationRoot {
   track(input: TrackInput!): TrackPayload!
   uninstallPluginPackage(id: ID!): UninstallPluginPackagePayload!
   uninstallPluginPackages(ids: [ID!]!): UninstallPluginPackagesPayload!
-  updateAIProvider(id: ID!, input: UpdateAIProviderInput!): UpdateAIProviderPayload!
+  updateAIModel(id: ID!, input: UpdateAIModelInput!): UpdateAIModelPayload!
+  updateAIProvider(id: ID!, input: UpdateAIProviderInput!): UpdateAIProviderPayload! @cloud
   updateAutomateSession(id: ID!, input: UpdateAutomateSessionInput!): UpdateAutomateSessionPayload!
     @cloud
   updateBrowser: UpdateBrowserPayload! @cloud
@@ -2470,9 +2728,9 @@ type MutationRoot {
     id: ID!
     input: UpdateReplayEntryDraftInput!
   ): UpdateReplayEntryDraftPayload!
-  updateReplayEntryHttpOnePipelineDraftHttpEntries(
+  updateReplayEntryHttpPipelineDraftHttpEntries(
     id: ID!
-    input: UpdateReplayEntryHttpOnePipelineDraftHttpEntriesInput!
+    input: UpdateReplayEntryHttpPipelineDraftHttpEntriesInput!
   ): UpdateReplayEntryDraftPayload!
   updateReplaySessionSettings(
     id: ID!
@@ -2513,6 +2771,20 @@ type OnboardingState {
   analytic: Boolean!
 }
 
+enum OpenAIProviderAPI {
+  COMPLETION
+  RESPONSE
+}
+
+input OpenAIProviderConfigurationInput {
+  api: OpenAIProviderAPI!
+  url: Url
+}
+
+input OpenRouterProviderConfigurationInput {
+  url: Url
+}
+
 enum Ordering {
   ASC
   DESC
@@ -2545,23 +2817,9 @@ type PageInfo {
 }
 
 type PassthroughOptions {
-  passthroughOptions: PassthroughOptionsObject
-}
-
-input PassthroughOptionsInput {
-  outofscope: Boolean!
-  targets: PassthroughTargets!
-}
-
-type PassthroughOptionsObject {
-  allowlist: [String!]
-  denylist: [String!]
+  captureList: [String!]!
   outOfScope: Boolean!
-}
-
-input PassthroughTargets {
-  allowlist: [String!]
-  denylist: [String!]
+  passthroughList: [String!]!
 }
 
 union PauseAutomateTaskError = UnknownIdUserError | OtherUserError
@@ -2814,6 +3072,9 @@ input QueryInput @oneOf {
 }
 
 type QueryRoot {
+  aiAwsProfiles: [AIAwsProfile!]!
+  aiProviderModels: [AIProviderModels!]!
+  aiProviderModelsById(providerId: ID!): AIProviderModels
   aiProviders: [AIProvider!]!
   assistantModels: [AssistantModel!]! @cloud
   assistantSession(id: ID!): AssistantSession
@@ -2888,7 +3149,7 @@ type QueryRoot {
   ): InterceptMessageConnection!
   interceptOptions: InterceptOptions!
   interceptStatus: InterceptStatus!
-  passthroughOptions: PassthroughOptions!
+  passthroughOptions: PassthroughOptions
   pluginPackage(id: ID!): PluginPackage
   pluginPackageByManifest(manifestId: ID!): PluginPackage
   pluginPackageData(id: ID!, key: String!): PluginPackageData
@@ -3231,33 +3492,33 @@ type ReplayEntryHttpDraft {
   settings: ReplayEntryHttpSettings!
 }
 
-type ReplayEntryHttpOnePipeline implements ReplayEntry {
+type ReplayEntryHttpPipeline implements ReplayEntry {
   activeHttpEntry: ReplayEntryHttp
   createdAt: Timestamp!
-  draft: ReplayEntryHttpOnePipelineDraft
+  draft: ReplayEntryHttpPipelineDraft
   error: String
   httpEntries: [ReplayEntryHttp!]!
   id: ID!
   rank: Rank!
   session: ReplaySession!
-  settings: ReplayEntryHttpOnePipelineSettings!
+  settings: ReplayEntryHttpPipelineSettings!
 }
 
-type ReplayEntryHttpOnePipelineDraft {
-  settings: ReplayEntryHttpOnePipelineSettings!
+type ReplayEntryHttpPipelineDraft {
+  settings: ReplayEntryHttpPipelineSettings!
 }
 
-enum ReplayEntryHttpOnePipelineDraftHttpEntryOperationKind {
+enum ReplayEntryHttpPipelineDraftHttpEntryOperationKind {
   ADD
   RANK
   REMOVE
 }
 
-type ReplayEntryHttpOnePipelineSettings {
+type ReplayEntryHttpPipelineSettings {
   strategy: PipelineStrategy!
 }
 
-input ReplayEntryHttpOnePipelineSettingsInput {
+input ReplayEntryHttpPipelineSettingsInput {
   strategy: PipelineStrategyInput!
 }
 
@@ -3442,7 +3703,7 @@ type ReplaySessionHttp implements ReplaySession {
   settings: ReplaySessionHttpSettings
 }
 
-type ReplaySessionHttpOnePipeline implements ReplaySession {
+type ReplaySessionHttpPipeline implements ReplaySession {
   activeEntry: ReplayEntry
   collection: ReplaySessionCollection!
   entries(
@@ -3455,36 +3716,42 @@ type ReplaySessionHttpOnePipeline implements ReplaySession {
   id: ID!
   name: String!
   rank: Rank!
-  settings: ReplaySessionHttpOnePipelineSettings
+  settings: ReplaySessionHttpPipelineSettings
 }
 
-type ReplaySessionHttpOnePipelineSettings {
+type ReplaySessionHttpPipelineSettings {
   strategy: PipelineStrategy!
+  stripHttp2ConnectionHeaders: Boolean!
+  updateContentLength: Boolean!
 }
 
-input ReplaySessionHttpOnePipelineSettingsInput {
+input ReplaySessionHttpPipelineSettingsInput {
   strategy: PipelineStrategyInput!
+  stripHttp2ConnectionHeaders: Boolean! = true
+  updateContentLength: Boolean
 }
 
 type ReplaySessionHttpSettings {
   connectionClose: Boolean!
+  stripHttp2ConnectionHeaders: Boolean!
   updateContentLength: Boolean!
 }
 
 input ReplaySessionHttpSettingsInput {
   connectionClose: Boolean!
+  stripHttp2ConnectionHeaders: Boolean! = true
   updateContentLength: Boolean!
 }
 
 enum ReplaySessionKind {
   HTTP
-  HTTP_ONE_PIPELINE
+  HTTP_PIPELINE
   WS
 }
 
 input ReplaySessionSettingsInput @oneOf {
   http: ReplaySessionHttpSettingsInput
-  httpOnePipeline: ReplaySessionHttpOnePipelineSettingsInput
+  httpPipeline: ReplaySessionHttpPipelineSettingsInput
 }
 
 type ReplaySessionWs implements ReplaySession {
@@ -3783,7 +4050,7 @@ type SendReplayTaskMessagePayload {
 scalar Sensitive
 
 type SetActiveReplayPipelineEntryHttpEntryPayload {
-  entry: ReplayEntryHttpOnePipeline
+  entry: ReplayEntryHttpPipeline
 }
 
 type SetActiveReplaySessionEntryPayload {
@@ -3817,8 +4084,14 @@ type SetInterceptOptionsPayload {
   options: InterceptOptions!
 }
 
+input SetPassthroughOptionsInput {
+  captureList: [String!]!
+  outOfScope: Boolean!
+  passthroughList: [String!]!
+}
+
 type SetPassthroughOptionsPayload {
-  options: PassthroughOptions!
+  options: PassthroughOptions
 }
 
 union SetPluginDataError = UnknownIdUserError | PluginUserError | OtherUserError
@@ -3934,6 +4207,30 @@ enum Source {
   REPLAY
   SAMPLE
   WORKFLOW
+}
+
+input StartAIProviderOAuthFlowDraftInput {
+  alias: Alias!
+  kind: AIProviderOAuthKind!
+}
+
+union StartAIProviderOAuthFlowError =
+  | UnknownIdUserError
+  | AliasTakenUserError
+  | AIUserError
+  | OtherUserError
+
+input StartAIProviderOAuthFlowInput @oneOf {
+  draft: StartAIProviderOAuthFlowDraftInput
+  id: ID
+}
+
+"""
+Cancel the task with `cancelTask`, its outcome comes with `finishedTask`.
+"""
+type StartAIProviderOAuthFlowPayload {
+  error: StartAIProviderOAuthFlowError
+  task: AIProviderOAuthTask
 }
 
 union StartAuthenticationFlowError =
@@ -4276,7 +4573,9 @@ type SubscriptionRoot {
   startedDeleteInterceptEntriesTask: StartedDeleteInterceptEntriesTaskPayload!
   startedRestoreBackupTask: StartedRestoreBackupTaskPayload!
   startedTask: StartedTaskPayload!
+  updatedAIModelCatalog: UpdatedAIModelCatalogPayload!
   updatedAIProvider: UpdatedAIProviderPayload!
+  updatedAIProviderAuthStatus: UpdatedAIProviderAuthStatusPayload!
   updatedAssistantMessageTask: UpdatedAssistantMessageTaskPayload!
   updatedAssistantSession: UpdatedAssistantSessionPayload!
   updatedAutomateEntry: UpdatedAutomateEntryPayload!
@@ -4822,12 +5121,19 @@ enum TaskStatus {
   ERROR
 }
 
-union TestAIProviderError = AIUserError | OtherUserError
+input TestAIProviderDraftInput {
+  auth: AIProviderAuthInput
+  configuration: AIProviderConfigurationInput!
+}
 
-input TestAIProviderInput {
-  api: AIProviderAPI!
-  apiKey: Sensitive!
-  url: Url
+union TestAIProviderError = UnknownIdUserError | AIUserError | OtherUserError
+
+"""
+A draft or a stored provider.
+"""
+input TestAIProviderInput @oneOf {
+  draft: TestAIProviderDraftInput
+  id: ID
 }
 
 type TestAIProviderPayload {
@@ -4988,13 +5294,41 @@ type UnsupportedPlatformUserError implements UserError {
   code: String!
 }
 
-union UpdateAIProviderError = UnknownIdUserError | AliasTakenUserError | OtherUserError
+union UpdateAIModelError = UnknownIdUserError | AIUserError | OtherUserError
+
+"""
+Omitted fields keep their value, null clears `reasoningEfforts` and `limits`.
+"""
+input UpdateAIModelInput {
+  capabilities: AIModelCapabilitiesInput
+  displayName: String
+  limits: AIModelLimitsInput
+  reasoningEfforts: [AIReasoningEffort!]
+}
+
+type UpdateAIModelPayload {
+  error: UpdateAIModelError
+  model: AIModel
+}
+
+union UpdateAIProviderError =
+  | UnknownIdUserError
+  | AliasTakenUserError
+  | AIUserError
+  | PermissionDeniedUserError
+  | CloudUserError
+  | OtherUserError
 
 input UpdateAIProviderInput {
   alias: Alias!
-  api: AIProviderAPI!
-  apiKey: Sensitive!
-  url: Url
+  """
+  Omitted to keep the stored credentials.
+  """
+  auth: AIProviderAuthInput
+  """
+  Omitted to keep the current configuration.
+  """
+  configuration: AIProviderConfigurationInput
 }
 
 type UpdateAIProviderPayload {
@@ -5095,7 +5429,7 @@ type UpdateFindingPayload {
 
 input UpdateReplayEntryDraftInput @oneOf {
   http: UpdateReplayEntryHttpDraftInput
-  httpOnePipeline: UpdateReplayEntryHttpOnePipelineDraftInput
+  httpPipeline: UpdateReplayEntryHttpPipelineDraftInput
   ws: UpdateReplayEntryWsDraftInput
 }
 
@@ -5110,19 +5444,19 @@ input UpdateReplayEntryHttpDraftInput {
   settings: ReplayEntryHttpSettingsInput!
 }
 
-input UpdateReplayEntryHttpOnePipelineDraftHttpEntriesInput {
-  operations: [UpdateReplayEntryHttpOnePipelineDraftHttpEntryOperationInput!]!
+input UpdateReplayEntryHttpPipelineDraftHttpEntriesInput {
+  operations: [UpdateReplayEntryHttpPipelineDraftHttpEntryOperationInput!]!
 }
 
-input UpdateReplayEntryHttpOnePipelineDraftHttpEntryOperationInput {
+input UpdateReplayEntryHttpPipelineDraftHttpEntryOperationInput {
   httpEntryId: ID
-  operation: ReplayEntryHttpOnePipelineDraftHttpEntryOperationKind!
+  operation: ReplayEntryHttpPipelineDraftHttpEntryOperationKind!
   rank: RankInput
   requestSource: RequestSourceInput
 }
 
-input UpdateReplayEntryHttpOnePipelineDraftInput {
-  settings: ReplayEntryHttpOnePipelineSettingsInput!
+input UpdateReplayEntryHttpPipelineDraftInput {
+  settings: ReplayEntryHttpPipelineSettingsInput!
 }
 
 input UpdateReplayEntryWsDraftInput {
@@ -5237,6 +5571,15 @@ type UpdateWorkflowPayload {
   workflow: Workflow
 }
 
+type UpdatedAIModelCatalogPayload {
+  providerId: ID!
+}
+
+type UpdatedAIProviderAuthStatusPayload {
+  providerId: ID!
+  status: AIProviderAuthStatus!
+}
+
 type UpdatedAIProviderPayload {
   provider: AIProvider!
 }
@@ -5339,7 +5682,7 @@ type UpdatedInterceptStatusPayload {
 }
 
 type UpdatedPassthroughOptionsPayload {
-  options: PassthroughOptions!
+  options: PassthroughOptions
 }
 
 type UpdatedPluginPackageDataPayload {
@@ -5626,6 +5969,16 @@ type Workspace {
   generation: Int!
   id: ID!
   name: String!
+}
+
+enum XaiProviderAPI {
+  COMPLETION
+  RESPONSE
+}
+
+input XaiProviderConfigurationInput {
+  api: XaiProviderAPI!
+  url: Url
 }
 
 directive @cloud on FIELD_DEFINITION
