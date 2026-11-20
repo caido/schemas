@@ -81,6 +81,102 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InstanceOwnerPayload'
+  /instance/settings/snapshots:
+    get:
+      tags:
+      - instance
+      summary: Instance lists the metadata of its user's snapshots
+      operationId: list_snapshots
+      responses:
+        '200':
+          description: Snapshot metadata for the current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotsPayload'
+        '401':
+          description: Missing authentication
+        '403':
+          description: Invalid authentication
+    post:
+      tags:
+      - instance
+      summary: Instance stores a named snapshot of its user's settings, replacing any existing one
+      operationId: create_snapshot
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSnapshotInput'
+        required: true
+      responses:
+        '200':
+          description: Snapshot replaced
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotMetaPayload'
+        '201':
+          description: Snapshot created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotMetaPayload'
+        '400':
+          description: Invalid snapshot name
+        '401':
+          description: Missing authentication
+        '403':
+          description: Invalid authentication
+        '409':
+          description: Snapshot limit reached
+        '413':
+          description: Snapshot is too large
+  /instance/settings/snapshots/{name}:
+    get:
+      tags:
+      - instance
+      summary: Instance fetches one of its user's snapshots
+      operationId: get_snapshot
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotPayload'
+        '401':
+          description: Missing authentication
+        '403':
+          description: Invalid authentication
+        '404':
+          description: Unknown snapshot
+    delete:
+      tags:
+      - instance
+      summary: Instance deletes one of its user's snapshots
+      operationId: delete_snapshot
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Snapshot deleted
+        '401':
+          description: Missing authentication
+        '403':
+          description: Invalid authentication
+        '404':
+          description: Unknown snapshot
   /instance/user/profile:
     get:
       tags:
@@ -328,6 +424,15 @@ components:
         balance:
           type: integer
           format: int64
+    CreateSnapshotInput:
+      type: object
+      required:
+      - name
+      - blob
+      properties:
+        blob: {}
+        name:
+          type: string
     DeviceAuthorizeInput:
       type: object
       required:
@@ -486,6 +591,10 @@ components:
           - 'null'
         repository:
           type: string
+        search:
+          type:
+          - string
+          - 'null'
         signature:
           type: string
         version:
@@ -598,6 +707,39 @@ components:
           type: string
         platform:
           type: string
+    SnapshotMetaPayload:
+      type: object
+      required:
+      - name
+      - created_on
+      properties:
+        created_on:
+          type: string
+          format: date-time
+        name:
+          type: string
+    SnapshotPayload:
+      type: object
+      required:
+      - name
+      - created_on
+      - blob
+      properties:
+        blob: {}
+        created_on:
+          type: string
+          format: date-time
+        name:
+          type: string
+    SnapshotsPayload:
+      type: object
+      required:
+      - snapshots
+      properties:
+        snapshots:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotMetaPayload'
     TokenInput:
       oneOf:
       - type: object
@@ -753,9 +895,12 @@ components:
           required:
           - name
           - email
+          - email_verified
           properties:
             email:
               type: string
+            email_verified:
+              type: boolean
             name:
               type: string
         subscription:
